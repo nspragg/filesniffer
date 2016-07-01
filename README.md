@@ -26,7 +26,7 @@ npm install --save filesniffer
 
 ## Usage
 
-Searches the cwd for files containing `myPattern`:
+Searches the current working directory for files containing the string `some string`:
 
 ```js
 const sniffer = FileSniffer.create().find('some string');
@@ -42,7 +42,7 @@ sniffer.on('done', (filenames) => {
 
 #### Search files in a specific directory
 
-Recursively search from /tmp for files containing `myPattern`
+Recursively search from `/tmp` for files containing `myPattern`
 
 ```js
  const sniffer = FileSniffer.create('/tmp').find(/myPattern/);
@@ -52,10 +52,10 @@ Recursively search from /tmp for files containing `myPattern`
  });
 ```
 
-#### Using FileHound for flexible file filtering
+#### Using [FileHound](https://github.com/nspragg/filehound) for flexible file filtering
 
-Perform depth first search starting from the cwd for all json files, modified
-less than 10mins ago, containing `myPattern`:
+Perform depth first search starting from the current working directory for all JSON files, modified
+less than 10 minutes ago, containing `myPattern`:
 
 ```js
 const CRITERIA = Filehound.create()
@@ -74,6 +74,10 @@ const CRITERIA = Filehound.create()
 Searches list of files for `myPattern`:
 
 ```js
+const files = [
+  '/tmp/file1.txt',
+  '/tmp/file2.txt'
+];
 const sniffer = FileSniffer.create(files).find(/myPattern/);
 
 sniffer.on('done', (filenames) => {
@@ -86,11 +90,16 @@ sniffer.on('done', (filenames) => {
 Listen to a match event to get all lines that match `myPattern`
 
 ```js
-const sniffer = FileSniffer.create(file).find(/myPattern/);
+const sniffer = FileSniffer.create().find(/myPattern/);
 
 const matchingLines = [];
+
 sniffer.on('match', (line) => {
   lines.push(line);
+});
+
+sniffer.on('done', () => {
+  console.log(matchingLines);
 });
 ```
 
@@ -114,12 +123,12 @@ Returns a FileSniffer instance.
 
 ## Instance methods
 
-### `.find(/myPattern/) -> FileSniffer`
+### `.find(pattern) -> FileSniffer`
 
 Execute search using myPattern
 
 ##### Parameters
-* regular expression or literal string
+* pattern - regular expression or literal string
 
 ##### Returns
 * Returns a FileSniffer instance.
