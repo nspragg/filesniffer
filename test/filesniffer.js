@@ -26,53 +26,50 @@ describe('FileSniffer', () => {
       const expected = [nestedList[0]];
       const searchDirectory = __dirname + '/fixtures/nested';
 
-      const sniffer = FileSniffer
-        .create(searchDirectory)
-        .find(/^p/i);
+      const sniffer = FileSniffer.create(searchDirectory);
 
-      sniffer.on('done', (filenames) => {
+      sniffer.on('end', (filenames) => {
         assert.deepEqual(filenames, expected);
         done();
       });
+      sniffer.find(/^p/i);
     });
 
     it('searches a given file', (done) => {
       const expected = [nestedList[0]];
       const fileToSearch = nestedList[0];
 
-      const sniffer = FileSniffer
-        .create(fileToSearch)
-        .find(/^p/i);
+      const sniffer = FileSniffer.create(fileToSearch)
 
-      sniffer.on('done', (filenames) => {
+      sniffer.on('end', (filenames) => {
         assert.deepEqual(filenames, expected);
         done();
       });
+
+      sniffer.find(/^p/i);
     });
 
     it('uses the current working directory as the default search path', (done) => {
       const expected = process.cwd() + '/' + 'README.md';
-      const sniffer = FileSniffer
-        .create()
-        .find(/^p/i);
+      const sniffer = FileSniffer.create()
 
-      sniffer.on('done', (filenames) => {
+      sniffer.on('end', (filenames) => {
         assert.ok(_.includes(filenames, expected));
         done();
       });
+      sniffer.find(/^p/i);
     });
 
     it('supports variable arguments', (done) => {
       const expected = [nestedList[1], nestedList[2]];
 
-      const sniffer = FileSniffer
-        .create(nestedList[1], nestedList[2])
-        .find(/^f/i);
+      const sniffer = FileSniffer.create(nestedList[1], nestedList[2])
 
-      sniffer.on('done', (filenames) => {
+      sniffer.on('end', (filenames) => {
         assert.deepEqual(filenames, expected);
         done();
       });
+      sniffer.find(/^f/i);
     });
 
     it('throws an error when given an invalid input source', () => {
@@ -88,13 +85,12 @@ describe('FileSniffer', () => {
         .paths(__dirname + '/fixtures/list')
         .ext('txt');
 
-      const sniffer = FileSniffer
-        .create(criteria)
-        .find(/^f/i);
+      const sniffer = FileSniffer.create(criteria)
 
-      sniffer.on('done', (files) => {
+      sniffer.on('end', (files) => {
         assert.deepEqual(files, expected);
       });
+      sniffer.find(/^f/i);
     });
   });
 
@@ -102,62 +98,58 @@ describe('FileSniffer', () => {
     it('returns files from a given list that contains a given string', (done) => {
       const expected = [fileList[1]];
 
-      const sniffer = FileSniffer
-        .create(fileList)
-        .find('passed');
+      const sniffer = FileSniffer.create(fileList)
 
-      sniffer.on('done', (filenames) => {
+      sniffer.on('end', (filenames) => {
         assert.deepEqual(filenames, expected);
         done();
       });
+
+      sniffer.find('passed');
     });
 
     it('returns files from a given list that contains a pattern', (done) => {
       const expected = [fileList[0], fileList[2]];
 
-      const sniffer = FileSniffer
-        .create(fileList)
-        .find(/^f/i);
+      const sniffer = FileSniffer.create(fileList)
 
-      sniffer.on('done', (filenames) => {
+      sniffer.on('end', (filenames) => {
         assert.deepEqual(filenames, expected);
         done();
       });
+      sniffer.find(/^f/i);
     });
 
     it('emits the filename', (done) => {
       const expected = [fileList[1]];
-      const sniffer = FileSniffer
-        .create(fileList)
-        .find(/^passed/);
+      const sniffer = FileSniffer.create(fileList)
 
       sniffer.on('match', (filename) => {
         assert.equal(filename, expected);
         done();
       });
+      sniffer.find(/^passed/);
     });
 
     it('emits eof event when a file has been read', (done) => {
       const expected = fileList[0];
-      const sniffer = FileSniffer
-        .create([fileList[0]])
-        .find(/Nullam/);
+      const sniffer = FileSniffer.create([fileList[0]])
 
       sniffer.on('eof', (filename) => {
         assert.equal(filename, expected);
         done();
       });
+      sniffer.find(/Nullam/);
     });
 
-    it('emits a done event with all matching filenames', (done) => {
-      const sniffer = FileSniffer
-        .create(matchingList)
-        .find(/Nullam/);
+    it('emits an end event with all matching filenames', (done) => {
+      const sniffer = FileSniffer.create(matchingList)
 
-      sniffer.on('done', (filenames) => {
+      sniffer.on('end', (filenames) => {
         assert.deepEqual(filenames, matchingList);
         done();
       });
+      sniffer.find(/Nullam/);
     });
 
     it('emits all matching lines as match events', (done) => {
@@ -165,52 +157,60 @@ describe('FileSniffer', () => {
       const match2 = 'In sit amet viverra leo. Donec sodales metus erat. Nullam consequat dui vel pretium auctor.';
       const match3 = 'lobortis sem. Proin bibendum ex at purus ornare faucibus. Nullam semper ligula vel quam aliquam,';
 
-      const sniffer = FileSniffer
-        .create(matchingList)
-        .find(/Nullam/);
+      const sniffer = FileSniffer.create(matchingList)
 
       const spy = sinon.spy();
       sniffer.on('match', spy);
 
-      sniffer.on('eof', (filename) => {
+      sniffer.on('eof', () => {
         sinon.assert.callCount(spy, 3);
         sinon.assert.calledWithMatch(spy, 'lorem-ipsum.txt', match1);
         sinon.assert.calledWithMatch(spy, 'lorem-ipsum.txt', match2);
         sinon.assert.calledWithMatch(spy, 'lorem-ipsum.txt', match3);
         done();
       });
+
+      sniffer.find(/Nullam/);
     });
 
     it('ignores binary files by default', (done) => {
       const expected = [fileList[0], fileList[2]];
 
-      const sniffer = FileSniffer
-        .create(expected.concat(binaryList))
-        .find(/^f/i);
+      const sniffer = FileSniffer.create(expected.concat(binaryList))
 
       const spy = sinon.spy();
       sniffer.on('eof', spy);
 
-      sniffer.on('done', () => {
+      sniffer.on('end', () => {
         sinon.assert.callCount(spy, 2);
         sinon.assert.calledWithMatch(spy, 'a.txt');
         sinon.assert.calledWithMatch(spy, 'c.txt');
         done();
       });
+      sniffer.find(/^f/i);
     });
 
     it('ignores hidden files', (done) => {
       const expected = [hidden[0]];
       const searchDirectory = __dirname + '/fixtures/listWithHidden';
 
-      const sniffer = FileSniffer
-        .create(searchDirectory)
-        .find(/^passed/);
-
-      sniffer.on('done', (filenames) => {
+      const sniffer = FileSniffer.create(searchDirectory);
+      sniffer.on('end', (filenames) => {
         assert.deepEqual(filenames, expected);
         done();
       });
+
+      sniffer.find(/^passed/);
+    });
+
+    it('emits an error event when a file does not exist', (done) => {
+      const sniffer = FileSniffer.create('does-not-exist.json');
+
+      sniffer.on('myerror', (err) => {
+        assert.equal(err.message, 'ENOENT: no such file or directory, stat \'does-not-exist.json\'');
+        done();
+      });
+      sniffer.find(/^academic/);
     });
   });
 });

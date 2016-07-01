@@ -29,15 +29,17 @@ npm install --save filesniffer
 Searches the cwd for files containing `myPattern`:
 
 ```js
-const sniffer = FileSniffer.create().find('some string');
+const sniffer = FileSniffer.create();
 
 sniffer.on('match', (filename, line) => {
   console.log(`Matching line ${line} found in ${filename}`);
 });
 
-sniffer.on('done', (filenames) => {
+sniffer.on('end', (filenames) => {
   console.log(`All files that match: ${filenames}`);
 });
+
+sniffer.find('some string');
 ```
 
 #### Search files in a specific directory
@@ -45,11 +47,13 @@ sniffer.on('done', (filenames) => {
 Recursively search from /tmp for files containing `myPattern`
 
 ```js
- const sniffer = FileSniffer.create('/tmp').find(/myPattern/);
+ const sniffer = FileSniffer.create('/tmp');
 
- sniffer.on('done', (filenames) => {
+ sniffer.on('end', (filenames) => {
    console.log(filenames);
  });
+
+ sniffer.find(/myPattern/);
 ```
 
 #### Using FileHound for flexible file filtering
@@ -62,11 +66,12 @@ const CRITERIA = Filehound.create()
   .ext('json')
   .modified('<10m');
 
-  const sniffer = FileSniffer.create(CRITERIA).find(/myPattern/);
+  const sniffer = FileSniffer.create(CRITERIA);
 
-  sniffer.on('done', (filenames) => {
+  sniffer.on('end', (filenames) => {
     console.log(filenames);
   });
+  sniffer.find(/myPattern/);
 ```
 
 #### Search a given list of files
@@ -74,11 +79,13 @@ const CRITERIA = Filehound.create()
 Searches list of files for `myPattern`:
 
 ```js
-const sniffer = FileSniffer.create(files).find(/myPattern/);
+const sniffer = FileSniffer.create(files);
 
-sniffer.on('done', (filenames) => {
+sniffer.on('end', (filenames) => {
   console.log(filenames);
 });
+
+sniffer.find(/myPattern/);
 ```
 
 #### Get matching content
@@ -86,12 +93,14 @@ sniffer.on('done', (filenames) => {
 Listen to a match event to get all lines that match `myPattern`
 
 ```js
-const sniffer = FileSniffer.create(file).find(/myPattern/);
+const sniffer = FileSniffer.create(file);
 
 const matchingLines = [];
 sniffer.on('match', (line) => {
   lines.push(line);
 });
+
+sniffer.find(/myPattern/);
 ```
 
 ## API
@@ -114,15 +123,14 @@ Returns a FileSniffer instance.
 
 ## Instance methods
 
-### `.find(/myPattern/) -> FileSniffer`
+### `.find(/myPattern/)`
 
 Execute search using myPattern
 
 ##### Parameters
 * regular expression or literal string
 
-##### Returns
-* Returns a FileSniffer instance.
+##### Returns - none
 
 ## Test
 

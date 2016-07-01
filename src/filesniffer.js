@@ -41,20 +41,6 @@ function isDirectory(file) {
   return getStats(file).isDirectory();
 }
 
-function _groupByFileType(paths) {
-  const dirs = [];
-  const files = [];
-
-  for (let i = 0; i < paths.length; i++) {
-    isDirectory(paths[i]) ? dirs.push(paths[i]) : files.push(paths[i]);
-  }
-
-  return {
-    files: files,
-    dirs: dirs
-  };
-}
-
 function getSource(args) {
   return args.length === 0 ? [process.cwd()] : from(arguments[0]);
 }
@@ -78,11 +64,29 @@ class FileSniffer extends EventEmitter {
     return _.isString(pattern) ? stringMatch : regExpMatch;
   }
 
+  _groupByFileType(paths) {
+    const dirs = [];
+    const files = [];
+
+    for (let i = 0; i < paths.length; i++) {
+      try {
+        isDirectory(paths[i]) ? dirs.push(paths[i]) : files.push(paths[i]);
+      } catch (err) {
+        this.emit('myerror', err);
+      }
+    }
+
+    return {
+      files: files,
+      dirs: dirs
+    };
+  }
+
   _getFiles() {
     if (this._source instanceof FileHound) return this._source.find();
 
     if (_.isArray(this._source)) {
-      const fileTypes = _groupByFileType(this._source);
+      const fileTypes = this._groupByFileType(this._source);
       const allFiles = bluebird.resolve(fileTypes.files);
       let allDirs = bluebird.resolve([]);
 
@@ -121,7 +125,7 @@ class FileSniffer extends EventEmitter {
       this.emit('eof', file);
       if (matched) this.filenames.push(file);
       if (this.pending === 0) {
-        this.emit('done', this.filenames);
+        this.emit('end', this.filenames);
       }
     });
   }
