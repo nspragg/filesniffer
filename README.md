@@ -100,8 +100,28 @@ Listen to a match event to get all lines that match `myPattern`
 const sniffer = FileSniffer.create(file);
 const matchingLines = [];
 
-sniffer.on('match', (line) => {
+sniffer.on('match', (filename, line) => {
   lines.push(line);
+});
+
+sniffer.find(/myPattern/);
+```
+
+#### Search gzip files
+
+Search files, including gzip files, in `dir`, containing `myPattern`
+
+```js
+const path = require('path');
+
+const sniffer = FileSniffer
+  .create(dir)
+  .gzip();
+
+sniffer.on('match', (filename, line) => {
+  if (path.extname(filename) === '.gz') {
+    console.log(`Found ${line} in gzip file`)
+  }
 });
 
 sniffer.find(/myPattern/);
@@ -126,6 +146,15 @@ sniffer.find(/myPattern/);
 Returns a FileSniffer instance.
 
 ## Instance methods
+
+### `.gzip() -> FileSniffer`
+
+Search gzip files
+
+##### Parameters - none
+
+##### Returns
+Returns a FileSniffer instance.
 
 ### `.find(/myPattern/)`
 
