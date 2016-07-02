@@ -2,7 +2,7 @@ import {
   assert
 } from 'chai';
 
-import isBinaryFile from '../lib/files';
+import isBinaryFile from '../lib/binary';
 import path from 'path';
 
 // subset of extensions

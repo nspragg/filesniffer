@@ -6,7 +6,7 @@ import FileHound from 'FileHound';
 import FileSniffer from '../lib/filesniffer';
 
 const fileList = qualifyNames(['list/a.txt', 'list/b.txt', 'list/c.txt']);
-const gzipped = qualifyNames(['gzipped/a.txt.gz', 'gzipped/b.txt.gz']);
+const gzipped = qualifyNames(['gzipped']);
 const hidden = qualifyNames(['listWithHidden/a.txt']);
 const nestedList = qualifyNames(['nested/d.txt', 'nested/e.txt', 'nested/f.txt']);
 const matchingList = qualifyNames(['match/lorem-ipsum.txt']);
@@ -162,7 +162,7 @@ describe('FileSniffer', () => {
       const spy = sinon.spy();
       sniffer.on('match', spy);
 
-      sniffer.on('eof', () => {
+      sniffer.on('end', () => {
         sinon.assert.callCount(spy, 3);
         sinon.assert.calledWithMatch(spy, 'lorem-ipsum.txt', match1);
         sinon.assert.calledWithMatch(spy, 'lorem-ipsum.txt', match2);
@@ -204,23 +204,32 @@ describe('FileSniffer', () => {
     });
 
     it('finds matches in a gzipped file', (done) => {
-      const expected = [gzipped[1]];
-      const sniffer = FileSniffer.create(gzipped);
+      const match1 = 'Nullam rhoncus nisl et tellus molestie tincidunt.';
+      const match2 = 'In sit amet viverra leo. Donec sodales metus erat. Nullam consequat dui vel pretium auctor.';
+      const match3 = 'lobortis sem. Proin bibendum ex at purus ornare faucibus. Nullam semper ligula vel quam aliquam,';
 
-      sniffer.on('match', (filename) => {
-        assert.equal(filename, expected);
+      const sniffer = FileSniffer
+        .create(gzipped)
+        .gzip();
+
+      const spy = sinon.spy();
+      sniffer.on('match', spy);
+
+      sniffer.on('end', () => {
+        sinon.assert.callCount(spy, 3);
+        sinon.assert.calledWithMatch(spy, 'lorem-ipsum.txt.gz', match1);
+        sinon.assert.calledWithMatch(spy, 'lorem-ipsum.txt.gz', match2);
+        sinon.assert.calledWithMatch(spy, 'lorem-ipsum.txt.gz', match3);
         done();
       });
 
-      sniffer
-        .gzip()
-        .find(/^passed/);
+      sniffer.find(/Nullam/);
     });
 
     it('emits an error event when a file does not exist', (done) => {
       const sniffer = FileSniffer.create('does-not-exist.json');
 
-      sniffer.on('myerror', (err) => {
+      sniffer.on('error', (err) => {
         assert.equal(err.message, 'ENOENT: no such file or directory, stat \'does-not-exist.json\'');
         done();
       });
