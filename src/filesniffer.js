@@ -4,9 +4,11 @@ import fs from 'fs';
 import FileHound from 'FileHound';
 import EventEmitter from 'events';
 import byline from 'byline';
+import path from 'path';
 import isBinaryFile from './files';
+import zlib from 'zlib';
 
-const fsp = bluebird.promisifyAll(fs);
+const LineStream = require('byline').LineStream;
 
 function stringMatch(data, string) {
   return data.indexOf(string) !== -1;
@@ -14,10 +16,6 @@ function stringMatch(data, string) {
 
 function regExpMatch(data, pattern) {
   return pattern.test(data);
-}
-
-function notBinaryFile(file) {
-  return !isBinaryFile(file);
 }
 
 function invalidInputSource(source) {
@@ -52,9 +50,22 @@ class FileSniffer extends EventEmitter {
     this.filenames = [];
     this.pending = 0;
     this.processed = 0;
+    this._handleGzip = false;
   }
 
   _createStream(file) {
+    if (this._handleGzip) {
+      const fstream = fs.createReadStream(file);
+      const unzipStream = zlib.createGunzip();
+      const lineStream = new LineStream();
+
+      fstream
+        .pipe(unzipStream)
+        .pipe(lineStream);
+
+      return lineStream;
+    }
+
     return byline(fs.createReadStream(file, {
       encoding: 'utf-8'
     }));
@@ -62,6 +73,12 @@ class FileSniffer extends EventEmitter {
 
   _createMatcher(pattern) {
     return _.isString(pattern) ? stringMatch : regExpMatch;
+  }
+
+  _notBinaryFile(file) {
+    if (path.extname(file) === '.gz' && this._handleGzip) return true;
+
+    return !isBinaryFile(file);
   }
 
   _groupByFileType(paths) {
@@ -130,9 +147,16 @@ class FileSniffer extends EventEmitter {
     });
   }
 
+  gzip() {
+    this._handleGzip = true;
+    return this;
+  }
+
   find(pattern) {
+    const f = this._notBinaryFile.bind(this);
+
     this._getFiles()
-      .filter(notBinaryFile)
+      .filter(f)
       .then((files) => {
         this.pending = files.length;
         return files;
@@ -140,8 +164,6 @@ class FileSniffer extends EventEmitter {
       .each((file) => {
         this._search(file, pattern);
       });
-
-    return this;
   }
 
   static create() {
