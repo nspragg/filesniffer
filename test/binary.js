@@ -45,7 +45,7 @@ describe('files', () => {
 
   it('returns false for non-binary file extensions', () => {
     NON_BINARY_FILES.forEach((file) => {
-      assert.isNotOk(isBinaryFile(file), 'PANTS!!!!!');
+      assert.isNotOk(isBinaryFile(file));
     });
   });
 

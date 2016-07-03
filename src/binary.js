@@ -49,10 +49,6 @@ function isBinaryData(filename) {
   return _isbinary(bytes, bytesRead);
 }
 
-function isBinaryExt(file) {
-  return _.includes(BINARY_FILE_EXTENSIONS, path.extname(file));
-}
-
 module.exports = function (file) {
   if (_.includes(BINARY_FILE_EXTENSIONS, path.extname(file))) return true;
 
