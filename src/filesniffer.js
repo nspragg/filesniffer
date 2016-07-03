@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import bluebird from 'bluebird';
 import fs from 'fs';
-import FileHound from 'FileHound';
+import FileHound from 'filehound';
 import EventEmitter from 'events';
 import byline from 'byline';
 import path from 'path';
@@ -24,9 +24,14 @@ function invalidInputSource(source) {
 
 function from(args) {
   const arg = args[0];
-  if (invalidInputSource(arg)) throw new Error('Invalid input source');
 
-  if (arg instanceof FileHound || _.isArray(arg)) return arg;
+  if (invalidInputSource(arg)) {
+    throw new Error('Invalid input source');
+  }
+
+  if (arg instanceof FileHound || _.isArray(arg)) {
+    return arg;
+  }
 
   return Array.prototype.slice.call(args);
 }

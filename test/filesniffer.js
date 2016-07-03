@@ -2,7 +2,7 @@ import _ from 'lodash';
 import assert from 'assert';
 import sinon from 'sinon';
 import path from 'path';
-import FileHound from 'FileHound';
+import FileHound from 'filehound';
 import FileSniffer from '../lib/filesniffer';
 
 const fileList = qualifyNames(['list/a.txt', 'list/b.txt', 'list/c.txt']);
