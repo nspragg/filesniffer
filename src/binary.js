@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
+const StringDecoder = require('string_decoder').StringDecoder;
 
 const BINARY_FILE_EXTENSIONS = require('../extensions');
 
@@ -53,8 +54,25 @@ function isBinaryExt(file) {
   return _.includes(BINARY_FILE_EXTENSIONS, path.extname(file));
 }
 
-module.exports = function (file) {
+function isAsciiChar(char) {
+  const decoder = new StringDecoder('utf8');
+  // console.log(decoder.write(char));
+  // console.log(char.charAt(0));
+  return char >= 32 && char <= 126;
+}
+
+module.exports.isBinaryFile = function (file) {
   if (_.includes(BINARY_FILE_EXTENSIONS, path.extname(file))) return true;
 
   return isBinaryData(file);
+};
+
+module.exports.strings = function (buffer) {
+  const ascii = [];
+  for (let i = 0; i < buffer.length; i++) {
+    if (isAsciiChar(buffer[i])) {
+      ascii.push(String(buffer[i]));
+    }
+  }
+  return ascii;
 };

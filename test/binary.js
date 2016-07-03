@@ -2,8 +2,9 @@ import {
   assert
 } from 'chai';
 
-import isBinaryFile from '../lib/binary';
+import binary from '../lib/binary';
 import path from 'path';
+import fs from 'fs';
 
 // subset of extensions
 const BINARY_FILES = qualifyNames([
@@ -18,15 +19,16 @@ const BINARY_FILES = qualifyNames([
   'binaryExtentions/a.flv',
   'binaryExtentions/a.mpg3',
   'binaryExtentions/a.mpg4',
-  'binaryExtentions/a.mpg',
+  'binaryExtentions/a.mpg'
 ]);
 
 const NON_BINARY_FILES = qualifyNames([
   'nonBinary/a.json',
   'nonBinary/a.txt',
-  'nonBinary/a.sh',
+  'nonBinary/a.sh'
 ]);
 
+const EXTRACTED_ASCII = require('./fixtures/binary/ascii-extract');
 
 function getAbsolutePath(file) {
   return path.join(__dirname + '/fixtures/', file);
@@ -36,21 +38,28 @@ function qualifyNames(names) {
   return names.map(getAbsolutePath);
 }
 
-describe('files', () => {
+describe('binary', () => {
   it('identifies binary files by file extention', () => {
     BINARY_FILES.forEach((file) => {
-      assert.ok(isBinaryFile(file), `file extension ${path.extname(file)} not matched`);
+      assert.ok(binary.isBinaryFile(file), `file extension ${path.extname(file)} not matched`);
     });
   });
 
   it('returns false for non-binary file extensions', () => {
     NON_BINARY_FILES.forEach((file) => {
-      assert.isNotOk(isBinaryFile(file), 'PANTS!!!!!');
+      assert.isNotOk(binary.isBinaryFile(file), 'PANTS!!!!!'); // TODO
     });
   });
 
   it('returns true for binary file content', () => {
     const f = getAbsolutePath('binary/binaryFile');
-    assert.ok(isBinaryFile(f));
+    assert.ok(binary.isBinaryFile(f));
+  });
+
+  it.only('extracts ascii text from a binary file', () => {
+    const f = getAbsolutePath('binary/binaryFile');
+    const contents = fs.readFileSync(f, 'utf8');
+    const ascii = binary.strings(contents);
+    assert.deepEqual(ascii, EXTRACTED_ASCII);
   });
 });

@@ -5,7 +5,11 @@ import FileHound from 'FileHound';
 import EventEmitter from 'events';
 import byline from 'byline';
 import path from 'path';
-import isBinaryFile from './binary';
+
+import {
+  isBinaryFile
+} from './binary';
+
 import zlib from 'zlib';
 
 const LineStream = require('byline').LineStream;
@@ -18,13 +22,15 @@ function regExpMatch(data, pattern) {
   return pattern.test(data);
 }
 
-function invalidInputSource(source) {
+function notValidInputSource(source) {
   return !(source instanceof FileHound) && !_.isString(source) && !_.isArray(source);
 }
 
 function from(args) {
   const arg = args[0];
-  if (invalidInputSource(arg)) throw new Error('Invalid input source');
+  if (notValidInputSource(arg)) {
+    throw new Error('Invalid input source');
+  }
 
   if (arg instanceof FileHound || _.isArray(arg)) return arg;
 
