@@ -50,6 +50,10 @@ function getSource(args) {
   return args.length === 0 ? [process.cwd()] : from(arguments[0]);
 }
 
+function flatten(a, b) {
+  return a.concat(b);
+}
+
 class FileSniffer extends EventEmitter {
   constructor(args) {
     super();
@@ -127,9 +131,7 @@ class FileSniffer extends EventEmitter {
           .find();
       }
 
-      return bluebird.join(allFiles, allDirs, (a, b) => {
-        return a.concat(b);
-      });
+      return bluebird.join(allFiles, allDirs, flatten);
     }
   }
 
