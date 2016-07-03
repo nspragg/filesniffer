@@ -1,5 +1,7 @@
 import _ from 'lodash';
-import assert from 'assert';
+import {
+  assert
+} from 'chai';
 import sinon from 'sinon';
 import path from 'path';
 import FileHound from 'filehound';
@@ -230,7 +232,7 @@ describe('FileSniffer', () => {
       const sniffer = FileSniffer.create('does-not-exist.json');
 
       sniffer.on('error', (err) => {
-        assert.equal(err.message, 'ENOENT: no such file or directory, stat \'does-not-exist.json\'');
+        assert.include(err.message, 'does-not-exist.json');
         done();
       });
 

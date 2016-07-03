@@ -2,7 +2,9 @@ import _ from 'lodash';
 import bluebird from 'bluebird';
 import fs from 'fs';
 import FileHound from 'filehound';
-import EventEmitter from 'events';
+import {
+  EventEmitter
+} from 'events';
 import byline from 'byline';
 import path from 'path';
 import isBinaryFile from './binary';
