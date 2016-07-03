@@ -23,6 +23,7 @@ npm install --save filesniffer
 * Built on streams to handle large files
 * Integrates with [FileHound](https://github.com/nspragg/filehound) for advanced file filtering
 * Uses events to emit matching data and the names of matches files
+* Supports gzip files
 
 ## Usage
 
