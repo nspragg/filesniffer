@@ -4,8 +4,9 @@ import path from 'path';
 const StringDecoder = require('string_decoder').StringDecoder;
 
 const BINARY_FILE_EXTENSIONS = require('../extensions');
+const WORD_SIZE = 4;
 
-const binaryCharacters = [
+const BINARY_CHARACTERS = [
   0, 1, 2, 3, 4,
   5, 6, 7, 8, 11,
   14, 15, 16, 17,
@@ -18,7 +19,7 @@ const binaryCharacters = [
 const characters = new Buffer(512);
 for (var i = 0; i < characters.length; i++) {
   let isBinary = 0;
-  if (_.includes(binaryCharacters, i)) {
+  if (_.includes(BINARY_CHARACTERS, i)) {
     isBinary = 1;
   }
   characters[i] = isBinary;
@@ -55,23 +56,28 @@ function isBinaryExt(file) {
 }
 
 function isAsciiChar(char) {
-  const decoder = new StringDecoder('utf8');
-  // console.log(decoder.write(char));
-  // console.log(char.charAt(0));
-  return char >= 32 && char <= 126;
+  return (char >= 32 && char <= 126) || char === 12;
 }
 
 module.exports.isBinaryFile = function (file) {
   if (_.includes(BINARY_FILE_EXTENSIONS, path.extname(file))) return true;
-
   return isBinaryData(file);
 };
 
 module.exports.strings = function (buffer) {
   const ascii = [];
+  let wordChars = [];
   for (let i = 0; i < buffer.length; i++) {
     if (isAsciiChar(buffer[i])) {
-      ascii.push(String(buffer[i]));
+      wordChars.push(String.fromCharCode(buffer[i]));
+    } else {
+      if (wordChars.length >= WORD_SIZE) {
+        const text = wordChars.reduce((a, b) => {
+          return a + b;
+        });
+        ascii.push(text);
+      }
+      wordChars = [];
     }
   }
   return ascii;

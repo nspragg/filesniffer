@@ -56,9 +56,9 @@ describe('binary', () => {
     assert.ok(binary.isBinaryFile(f));
   });
 
-  it.only('extracts ascii text from a binary file', () => {
+  it('extracts ascii text from a binary file', () => {
     const f = getAbsolutePath('binary/binaryFile');
-    const contents = fs.readFileSync(f, 'utf8');
+    const contents = fs.readFileSync(f);
     const ascii = binary.strings(contents);
     assert.deepEqual(ascii, EXTRACTED_ASCII);
   });
