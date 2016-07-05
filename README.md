@@ -21,7 +21,7 @@ npm install --save filesniffer
 ## Features
 
 * Built on streams to handle large files
-* Integrates with [FileHound](https://github.com/nspragg/filehound) for advanced file filtering
+* Integrates with [FileHound](https://github.com/nspragg/filehound) for advanced file searching
 * Uses events to emit matching data and the names of matches files
 * Supports gzip files
 
@@ -57,7 +57,7 @@ Recursively search from `/tmp` for files containing `myPattern`
  sniffer.find(/myPattern/);
 ```
 
-#### Using [FileHound](https://github.com/nspragg/filehound) for flexible file filtering
+#### Using [FileHound](https://github.com/nspragg/filehound) for file searching
 
 Perform depth first search starting from the current working directory for all JSON files, modified
 less than 10 minutes ago, containing `myPattern`:
