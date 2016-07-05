@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/nspragg/filesniffer.svg)](https://travis-ci.org/nspragg/filesniffer) [![Coverage Status](https://coveralls.io/repos/github/nspragg/filesniffer/badge.svg?branch=master)](https://coveralls.io/github/nspragg/filesniffer?branch=master)
 
-> Find files and matching content
+> Find files by matching contents
 
 * [Installation](#installation)
 * [Features](#features)
