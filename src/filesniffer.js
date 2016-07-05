@@ -2,10 +2,13 @@ import _ from 'lodash';
 import bluebird from 'bluebird';
 import fs from 'fs';
 import FileHound from 'filehound';
-import EventEmitter from 'events';
 import byline from 'byline';
 import StringStream from './StringStream';
 import path from 'path';
+
+import {
+  EventEmitter
+} from 'events';
 
 import {
   isBinaryFile
