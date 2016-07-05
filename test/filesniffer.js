@@ -236,5 +236,23 @@ describe('FileSniffer', () => {
 
       sniffer.find(/^academic/);
     });
+
+    it('find matches in a binary file', (done) => {
+      const sniffer = FileSniffer
+        .create(binaryList)
+        .binary();
+
+      const spy = sinon.spy();
+      sniffer.on('match', spy);
+
+      sniffer.on('end', () => {
+        sinon.assert.callCount(spy, 2);
+        sinon.assert.calledWithMatch(spy, 'binaryFile', 'xBro');
+        sinon.assert.calledWithMatch(spy, 'binaryFile', 'SBP W');
+        done();
+      });
+
+      sniffer.find(/xbro|sbp/i);
+    });
   });
 });

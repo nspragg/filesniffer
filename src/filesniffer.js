@@ -4,6 +4,7 @@ import fs from 'fs';
 import FileHound from 'FileHound';
 import EventEmitter from 'events';
 import byline from 'byline';
+import StringStream from './StringStream';
 import path from 'path';
 
 import {
@@ -57,6 +58,7 @@ class FileSniffer extends EventEmitter {
     this.pending = 0;
     this.processed = 0;
     this.gzipMode = false;
+    this.binaryMode = false;
   }
 
   _createStream(file) {
@@ -72,6 +74,15 @@ class FileSniffer extends EventEmitter {
       return lineStream;
     }
 
+    if (this._handleBinary(file)) {
+      const fstream = fs.createReadStream(file);
+      const sstream = new StringStream();
+      fstream
+        .pipe(sstream);
+
+      return sstream;
+    }
+
     return byline(fs.createReadStream(file, {
       encoding: 'utf-8'
     }));
@@ -85,8 +96,13 @@ class FileSniffer extends EventEmitter {
     return path.extname(file) === '.gz' && this.gzipMode;
   }
 
+  _handleBinary(file) {
+    return this.binaryMode && isBinaryFile(file);
+  }
+
   _notBinaryFile(file) {
     if (this._handleGzip(file)) return true;
+    if (this.binaryMode) return true;
 
     return !isBinaryFile(file);
   }
@@ -162,6 +178,11 @@ class FileSniffer extends EventEmitter {
 
   gzip() {
     this.gzipMode = true;
+    return this;
+  }
+
+  binary() {
+    this.binaryMode = true;
     return this;
   }
 
