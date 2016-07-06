@@ -30,8 +30,10 @@ npm install --save filesniffer
 Searches the current working directory for files containing the string `some string`:
 
 ```js
+// create/configure filesniffer instance
 const sniffer = FileSniffer.create();
 
+// register event handlers
 sniffer.on('match', (filename, line) => {
   console.log(`Matching line ${line} found in ${filename}`);
 });
@@ -40,6 +42,7 @@ sniffer.on('end', (filenames) => {
   console.log(`All files that match: ${filenames}`);
 });
 
+// start search
 sniffer.find('some string');
 ```
 
