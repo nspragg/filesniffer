@@ -1,8 +1,8 @@
-import _ from 'lodash';
-import fs from 'fs';
-import path from 'path';
+import * as _ from 'lodash';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const BINARY_FILE_EXTENSIONS = require('../extensions');
+const BINARY_FILE_EXTENSIONS = require('../../extensions');
 
 const binaryCharacters = [
   0, 1, 2, 3, 4,
@@ -15,6 +15,7 @@ const binaryCharacters = [
 ];
 
 const characters = new Buffer(512);
+/* tslint:disable:no-increment-decrement */
 for (let i = 0; i < characters.length; i++) {
   let isBinary = 0;
   if (_.includes(binaryCharacters, i)) {
@@ -27,10 +28,11 @@ function isBinaryChar(data) {
   return characters[data];
 }
 
-function _isbinary(data, size) {
+/* tslint:disable:function-name */
+function _isbinary(data, size): boolean {
   const len = Math.min(size, 512);
   for (let i = 0; i < len; i++) {
-    if (isBinaryChar(data[i])) return true;
+    if (isBinaryChar(data[i])) { return true; }
   }
   return false;
 }
@@ -43,14 +45,14 @@ function writeToBuffer(filename, buffer) {
   return bytesRead;
 }
 
-function isBinaryData(filename) {
+function isBinaryData(filename): boolean {
   const bytes = new Buffer(512);
   const bytesRead = writeToBuffer(filename, bytes);
   return _isbinary(bytes, bytesRead);
 }
 
-module.exports = function (file) {
-  if (_.includes(BINARY_FILE_EXTENSIONS, path.extname(file))) return true;
+export function isbinary(file: string): boolean {
+  if (_.includes(BINARY_FILE_EXTENSIONS, path.extname(file))) { return true; }
 
   return isBinaryData(file);
-};
+}

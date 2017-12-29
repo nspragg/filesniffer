@@ -1,11 +1,10 @@
-import _ from 'lodash';
 import {
   assert
 } from 'chai';
-import sinon from 'sinon';
-import path from 'path';
-import FileHound from 'filehound';
-import FileSniffer from '../lib/filesniffer';
+import * as sinon from 'sinon';
+import * as path from 'path';
+import * as FileHound from 'filehound';
+import { FileSniffer } from '../dist/src/filesniffer';
 
 const fileList = qualifyNames(['list/a.txt', 'list/b.txt', 'list/c.txt']);
 const gzipped = qualifyNames(['gzipped']);
@@ -29,6 +28,7 @@ function mockMatchEvent(sniffer) {
   return spy;
 }
 
+// TODO: missing test case - no matches found? no events emitted..
 describe('FileSniffer', () => {
   describe('.create', () => {
     it('searches a given directory', (done) => {
