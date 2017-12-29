@@ -95,7 +95,7 @@ describe('FileSniffer', () => {
       }, /Invalid input source/);
     });
 
-    it('returns files from a given FileHound instance that contains a matching patten', () => {
+    it('returns files from a given FileHound instance that contains a matching patten', (done) => {
       const expected = [fileList[0], fileList[2]];
       const criteria = FileHound
         .create()
@@ -109,6 +109,7 @@ describe('FileSniffer', () => {
         sinon.assert.callCount(spy, 2);
         sinon.assert.calledWithMatch(spy, expected[0]);
         sinon.assert.calledWithMatch(spy, expected[1]);
+        done();
       });
       sniffer.find(/^f/i);
     });
