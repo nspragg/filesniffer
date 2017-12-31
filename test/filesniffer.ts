@@ -1,16 +1,14 @@
-import {
-  assert
-} from 'chai';
+import { assert } from 'chai';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as FileHound from 'filehound';
-import { FileSniffer } from '../dist/src/filesniffer';
+import { FileSniffer, asArray, asObject } from '../dist/src/filesniffer';
 
 const fileList = qualifyNames(['list/a.txt', 'list/b.txt', 'list/c.txt']);
 const gzipped = qualifyNames(['gzipped']);
 const hidden = qualifyNames(['listWithHidden/a.txt']);
 const nestedList = qualifyNames(['nested/d.txt', 'nested/e.txt', 'nested/f.txt']);
-const matchingList = qualifyNames(['match/lorem-ipsum.txt']);
+const matchingList = qualifyNames(['match/lorem-ipsum.txt', 'match/multiple.txt']);
 const binaryList = qualifyNames(['binary/binaryFile']);
 
 function getAbsolutePath(file) {
@@ -21,14 +19,13 @@ function qualifyNames(names) {
   return names.map(getAbsolutePath);
 }
 
-function mockMatchEvent(sniffer) {
+function mockMatchEvent(sniffer, event = 'match') {
   const spy = sinon.spy();
-  sniffer.on('match', spy);
+  sniffer.on(event, spy);
 
   return spy;
 }
 
-// TODO: missing test case - no matches found? no events emitted..
 describe('FileSniffer', () => {
   describe('.create', () => {
     it('searches a given directory', (done) => {
@@ -89,6 +86,20 @@ describe('FileSniffer', () => {
       sniffer.find(/^f/i);
     });
 
+    it('emits an end event when given an empty array', (done) => {
+      const expected = [];
+
+      const sniffer = FileSniffer.create([]);
+      const spy = mockMatchEvent(sniffer, 'end');
+
+      sniffer.on('end', () => {
+        sinon.assert.callCount(spy, 1);
+        sinon.assert.calledWithMatch(spy, expected);
+        done();
+      });
+      sniffer.find(/^whatever/i);
+    });
+
     it('throws an error when given an invalid input source', () => {
       assert.throws(() => {
         FileSniffer.create({});
@@ -112,6 +123,89 @@ describe('FileSniffer', () => {
         done();
       });
       sniffer.find(/^f/i);
+    });
+  });
+
+  describe('.collect', () => {
+    describe('asArray', () => {
+      it('returns matches as an array of match objects', async () => {
+        const matches = await FileSniffer.create(fileList)
+          .collect(asArray())
+          .find('passed');
+
+        assert.deepEqual(matches, [{
+          path: getAbsolutePath('/list/b.txt'),
+          match: 'passed'
+        }]);
+      });
+
+      it('returns matches as an array of match objects from multiple files', async () => {
+        const expected = [fileList[0], fileList[2]];
+
+        const matches = await FileSniffer.create(fileList)
+          .collect(asArray())
+          .find(/^f/i);
+
+        assert.deepEqual(matches, [{
+          path: getAbsolutePath('/list/a.txt'),
+          match: 'failed'
+        },
+        {
+          path: getAbsolutePath('/list/c.txt'),
+          match: 'failed'
+        }]);
+      });
+
+      it('returns matches as an array from the same file', async () => {
+        const matches = await FileSniffer.create(matchingList)
+          .collect(asArray())
+          .find('this is line A');
+
+        assert.deepEqual(matches, [
+          { path: getAbsolutePath('/match/multiple.txt'), match: 'this is line A - 1' },
+          { path: getAbsolutePath('/match/multiple.txt'), match: 'this is line A - 2' },
+          { path: getAbsolutePath('/match/multiple.txt'), match: 'this is line A - 3' }
+        ]);
+      });
+    });
+
+    describe('asObject', () => {
+      it('returns matches as an object', async () => {
+        const matches = await FileSniffer.create(fileList)
+          .collect(asObject())
+          .find('passed');
+
+        const expected = {};
+        expected[getAbsolutePath('/list/b.txt')] = ['passed'];
+
+        assert.deepEqual(matches, expected);
+      });
+
+      it('returns matches from multiple files', async () => {
+        const matches = await FileSniffer.create(fileList)
+          .collect(asObject())
+          .find('failed');
+
+        const expected = {};
+        expected[getAbsolutePath('/list/a.txt')] = ['failed'];
+        expected[getAbsolutePath('/list/c.txt')] = ['failed'];
+
+        assert.deepEqual(matches, expected);
+      });
+
+      it('returns multiple matches from the same file', async () => {
+        const matches = await FileSniffer.create(matchingList)
+          .collect(asObject())
+          .find('this is line A');
+
+        const expected = {};
+        expected[getAbsolutePath('/match/multiple.txt')] = [
+          'this is line A - 1',
+          'this is line A - 2',
+          'this is line A - 3'];
+
+        assert.deepEqual(matches, expected);
+      });
     });
   });
 

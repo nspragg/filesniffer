@@ -1,16 +1,19 @@
 import * as _ from 'lodash';
-import * as bluebird from 'bluebird';
+import * as Promise from 'bluebird';
 import * as fs from 'fs';
 import * as filehound from 'filehound';
-import {
-  EventEmitter
-} from 'events';
+import { EventEmitter } from 'events';
 import * as byline from 'byline';
 import * as path from 'path';
-import { isbinary } from './isbinary';
 import * as zlib from 'zlib';
+import { isbinary } from './isbinary';
+import bind from './bind';
+import { ArrayCollector } from './ArrayCollector';
+import { ObjectCollector } from './ObjectCollector';
+import { NoopCollector } from './NoopCollector';
+import { Collector } from './collector';
 
-const LineStream = require('byline').LineStream;
+const LineStream = byline.LineStream;
 
 function stringMatch(data, str) {
   return data.indexOf(str) !== -1;
@@ -54,11 +57,20 @@ function flatten(a, b) {
   return a.concat(b);
 }
 
+export function asArray() {
+  return new ArrayCollector();
+}
+
+export function asObject() {
+  return new ObjectCollector();
+}
+
 export class FileSniffer extends EventEmitter {
   private inputSource;
-  private filenames;
-  private pending;
-  private gzipMode;
+  private filenames: string[];
+  private pending: number;
+  private gzipMode: boolean;
+  private collector: Collector;
 
   constructor(args) {
     super();
@@ -66,16 +78,15 @@ export class FileSniffer extends EventEmitter {
     this.filenames = [];
     this.pending = 0;
     this.gzipMode = false;
+    this.collector = new NoopCollector();
+    bind(this);
   }
 
   private createStream(file) {
     if (this.handleGzip(file)) {
-      const fstream = fs.createReadStream(file);
-      const unzipStream = zlib.createGunzip();
       const lineStream = new LineStream();
-
-      fstream
-        .pipe(unzipStream)
+      fs.createReadStream(file)
+        .pipe(zlib.createGunzip())
         .pipe(lineStream);
 
       return lineStream;
@@ -94,12 +105,12 @@ export class FileSniffer extends EventEmitter {
     return path.extname(file) === '.gz' && this.gzipMode;
   }
 
-  private notBinaryFile(file: string): boolean { // TODO: ignore binaries?
+  private nonBinaryFiles(file: string): boolean { // TODO: ignore binaries?
     if (this.handleGzip(file)) { return true; }
     return !isbinary(file);
   }
 
-  groupByFileType(paths) {
+  private groupByFileType(paths) {
     const dirs = [];
     const files = [];
 
@@ -118,13 +129,13 @@ export class FileSniffer extends EventEmitter {
     };
   }
 
-  getFiles() {
+  private getFiles(): Promise {
     if (this.inputSource instanceof filehound) { return this.inputSource.find(); }
 
     if (_.isArray(this.inputSource)) {
       const fileTypes = this.groupByFileType(this.inputSource);
-      const allFiles = bluebird.resolve(fileTypes.files);
-      let allDirs = bluebird.resolve([]);
+      const allFiles = Promise.resolve(fileTypes.files);
+      let allDirs = Promise.resolve([]);
 
       if (fileTypes.dirs.length > 0) {
         allDirs = filehound
@@ -134,11 +145,25 @@ export class FileSniffer extends EventEmitter {
           .paths(fileTypes.dirs)
           .find();
       }
-      return bluebird.join(allFiles, allDirs, flatten);
+      return Promise.join(allFiles, allDirs, flatten);
     }
   }
 
-  search(file, pattern) {
+  private search(pattern): (files) => void {
+    return (files) => {
+      this.pending = files.length;
+      if (this.pending > 0) {
+        Promise.resolve(files).each((file) => {
+          this.searchFile(file, pattern);
+        });
+      }
+      else {
+        this.emitEnd();
+      }
+    };
+  }
+
+  private searchFile(file, pattern): void {
     const snifferStream = this.createStream(file);
     const isMatch = this.createMatcher(pattern);
 
@@ -153,6 +178,10 @@ export class FileSniffer extends EventEmitter {
         if (isMatch(line, pattern)) {
           matched = true;
           this.emit('match', file, line);
+
+          if (!(this.collector instanceof NoopCollector)) {
+            this.collector.collect(line, { path: file });
+          }
         }
       }
     });
@@ -162,32 +191,39 @@ export class FileSniffer extends EventEmitter {
       this.pending--;
       this.emit('eof', file);
       if (matched) { this.filenames.push(file); }
-      if (this.pending === 0) {
-        this.emit('end', this.filenames);
-      }
+      this.emitEnd();
     });
   }
 
-  gzip() {
+  private emitEnd(): void {
+    if (this.pending === 0) {
+      this.emit('end', this.filenames);
+    }
+  }
+
+  public gzip(): FileSniffer {
     this.gzipMode = true;
     return this;
   }
 
-  find(pattern) {
-    const notBinaryFile = this.notBinaryFile.bind(this);
-
+  public find(pattern) {
     this.getFiles()
-      .filter(notBinaryFile)
-      .then((files) => {
-        this.pending = files.length;
-        return files;
-      })
-      .each((file) => {
-        this.search(file, pattern);
+      .filter(this.nonBinaryFiles)
+      .then(this.search(pattern));
+
+    return new Promise((resolve, reject) => {
+      this.on('end', () => {
+        resolve(this.collector.matches());
       });
+    });
   }
 
-  static create() {
+  public collect(collector: Collector): FileSniffer {
+    this.collector = collector;
+    return this;
+  }
+
+  public static create(): FileSniffer {
     return new FileSniffer(arguments);
   }
 }
