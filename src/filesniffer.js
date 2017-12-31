@@ -1,16 +1,15 @@
 import _ from 'lodash';
-import bluebird from 'bluebird';
+import Promise from 'bluebird';
 import fs from 'fs';
 import FileHound from 'filehound';
-import {
-  EventEmitter
-} from 'events';
+import { EventEmitter } from 'events';
 import byline from 'byline';
 import path from 'path';
-import isBinaryFile from './binary';
 import zlib from 'zlib';
+import isBinaryFile from './binary';
+import bind from './bind';
 
-const LineStream = require('byline').LineStream;
+const LineStream = byline.LineStream;
 
 function stringMatch(data, string) {
   return data.indexOf(string) !== -1;
@@ -60,18 +59,15 @@ class FileSniffer extends EventEmitter {
     this.inputSource = getSource(args);
     this.filenames = [];
     this.pending = 0;
-    this.processed = 0;
     this.gzipMode = false;
+    bind(this);
   }
 
   _createStream(file) {
     if (this._handleGzip(file)) {
-      const fstream = fs.createReadStream(file);
-      const unzipStream = zlib.createGunzip();
       const lineStream = new LineStream();
-
-      fstream
-        .pipe(unzipStream)
+      fs.createReadStream(file)
+        .pipe(zlib.createGunzip())
         .pipe(lineStream);
 
       return lineStream;
@@ -90,9 +86,8 @@ class FileSniffer extends EventEmitter {
     return path.extname(file) === '.gz' && this.gzipMode;
   }
 
-  _notBinaryFile(file) {
+  _nonBinaryFiles(file) {
     if (this._handleGzip(file)) return true;
-
     return !isBinaryFile(file);
   }
 
@@ -119,8 +114,8 @@ class FileSniffer extends EventEmitter {
 
     if (_.isArray(this.inputSource)) {
       const fileTypes = this._groupByFileType(this.inputSource);
-      const allFiles = bluebird.resolve(fileTypes.files);
-      let allDirs = bluebird.resolve([]);
+      const allFiles = Promise.resolve(fileTypes.files);
+      let allDirs = Promise.resolve([]);
 
       if (fileTypes.dirs.length > 0) {
         allDirs = FileHound
@@ -131,11 +126,25 @@ class FileSniffer extends EventEmitter {
           .find();
       }
 
-      return bluebird.join(allFiles, allDirs, flatten);
+      return Promise.join(allFiles, allDirs, flatten);
     }
   }
 
-  _search(file, pattern) {
+  _search(pattern) {
+    return (files) => {
+      this.pending = files.length;
+      if (this.pending > 0) {
+        Promise.resolve(files).each((file) => {
+          this._searchFile(file, pattern);
+        });
+      }
+      else {
+        this._emitEnd();
+      }
+    };
+  }
+
+  _searchFile(file, pattern) {
     const snifferStream = this._createStream(file);
     const isMatch = this._createMatcher(pattern);
 
@@ -157,10 +166,14 @@ class FileSniffer extends EventEmitter {
       this.pending--;
       this.emit('eof', file);
       if (matched) this.filenames.push(file);
-      if (this.pending === 0) {
-        this.emit('end', this.filenames);
-      }
+      this._emitEnd();
     });
+  }
+
+  _emitEnd() {
+    if (this.pending === 0) {
+      this.emit('end', this.filenames);
+    }
   }
 
   gzip() {
@@ -169,17 +182,11 @@ class FileSniffer extends EventEmitter {
   }
 
   find(pattern) {
-    const notBinaryFile = this._notBinaryFile.bind(this);
+    const nonBinaryFiles = this._nonBinaryFiles.bind(this);
 
     this._getFiles()
-      .filter(notBinaryFile)
-      .then((files) => {
-        this.pending = files.length;
-        return files;
-      })
-      .each((file) => {
-        this._search(file, pattern);
-      });
+      .filter(nonBinaryFiles)
+      .then(this._search(pattern));
   }
 
   static create() {

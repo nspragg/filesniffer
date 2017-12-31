@@ -22,9 +22,11 @@ function qualifyNames(names) {
   return names.map(getAbsolutePath);
 }
 
-function mockMatchEvent(sniffer) {
+function mockMatchEvent(sniffer, event) {
+  event = event || 'match';
+
   const spy = sinon.spy();
-  sniffer.on('match', spy);
+  sniffer.on(event, spy);
 
   return spy;
 }
@@ -87,6 +89,20 @@ describe('FileSniffer', () => {
         done();
       });
       sniffer.find(/^f/i);
+    });
+
+    it('emits an end event when given an empty array', (done) => {
+      const expected = [];
+
+      const sniffer = FileSniffer.create([]);
+      const spy = mockMatchEvent(sniffer, 'end');
+
+      sniffer.on('end', () => {
+        sinon.assert.callCount(spy, 1);
+        sinon.assert.calledWithMatch(spy, expected);
+        done();
+      });
+      sniffer.find(/^whatever/i);
     });
 
     it('throws an error when given an invalid input source', () => {
