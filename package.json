@@ -1,6 +1,6 @@
 {
   "name": "filesniffer",
-  "version": "0.0.2-alpha.1",
+  "version": "0.0.3-alpha.1",
   "description": "Find files by matching content",
   "main": "index.js",
   "scripts": {
