@@ -1,7 +1,6 @@
 import { assert } from 'chai';
 import * as sinon from 'sinon';
 import * as path from 'path';
-import * as FileHound from 'filehound';
 import { FileSniffer, asArray, asObject } from '../dist/src/filesniffer';
 
 const fileList = qualifyNames(['list/a.txt', 'list/b.txt', 'list/c.txt']);
@@ -28,36 +27,6 @@ function mockMatchEvent(sniffer, event = 'match') {
 
 describe('FileSniffer', () => {
   describe('.create', () => {
-    it('searches a given directory', (done) => {
-      const expected = nestedList[0];
-      const searchDirectory = __dirname + '/fixtures/nested';
-
-      const sniffer = FileSniffer.create(searchDirectory);
-      const spy = mockMatchEvent(sniffer);
-
-      sniffer.on('end', () => {
-        sinon.assert.callCount(spy, 1);
-        sinon.assert.calledWithMatch(spy, expected);
-        done();
-      });
-      sniffer.find(/^p/i);
-    });
-
-    it('searches a given file', (done) => {
-      const expected = nestedList[0];
-
-      const sniffer = FileSniffer.create(expected);
-      const spy = mockMatchEvent(sniffer);
-
-      sniffer.on('end', () => {
-        sinon.assert.callCount(spy, 1);
-        sinon.assert.calledWithMatch(spy, expected);
-        done();
-      });
-
-      sniffer.find(/^p/i);
-    });
-
     it('uses the current working directory as the default search path', (done) => {
       const expected = process.cwd() + '/' + 'README.md';
       const sniffer = FileSniffer.create();
@@ -71,6 +40,7 @@ describe('FileSniffer', () => {
       sniffer.find(/^p/i);
     });
 
+    // TODO: Migrate to .paths
     it('supports variable arguments', (done) => {
       const expected = [nestedList[1], nestedList[2]];
 
@@ -86,6 +56,7 @@ describe('FileSniffer', () => {
       sniffer.find(/^f/i);
     });
 
+    // TODO: Migrate to .paths
     it('emits an end event when given an empty array', (done) => {
       const expected = [];
 
@@ -100,30 +71,55 @@ describe('FileSniffer', () => {
       sniffer.find(/^whatever/i);
     });
 
+    // TODO: Migrate to .paths
     it('throws an error when given an invalid input source', () => {
       assert.throws(() => {
         FileSniffer.create({});
       }, /Invalid input source/);
     });
+  });
 
-    it('returns files from a given FileHound instance that contains a matching patten', (done) => {
-      const expected = [fileList[0], fileList[2]];
-      const criteria = FileHound
-        .create()
-        .paths(__dirname + '/fixtures/list')
-        .ext('txt');
+  describe('.path', () => {
+    it('sets a given file', async () => {
+      const searchFile = __dirname + '/fixtures/nested/d.txt';
+      const matches = await FileSniffer.create()
+        .path(searchFile)
+        .collect(asArray())
+        .find(/^p/i);
 
-      const sniffer = FileSniffer.create(criteria);
-      const spy = mockMatchEvent(sniffer);
-
-      sniffer.on('end', () => {
-        sinon.assert.callCount(spy, 2);
-        sinon.assert.calledWithMatch(spy, expected[0]);
-        sinon.assert.calledWithMatch(spy, expected[1]);
-        done();
-      });
-      sniffer.find(/^f/i);
+      assert.deepEqual(matches, [{
+        path: getAbsolutePath('nested/d.txt'),
+        match: 'passed'
+      }]);
     });
+
+    it('sets a given directory', async () => {
+      const expected = nestedList[0];
+      const searchDirectory = __dirname + '/fixtures/nested';
+
+      const matches = await FileSniffer.create()
+        .path(searchDirectory)
+        .collect(asArray())
+        .find(/^p/i);
+
+      assert.deepEqual(matches, [{
+        path: getAbsolutePath('nested/d.txt'),
+        match: 'passed'
+      }]);
+    });
+  });
+
+  describe('.paths', () => {
+    it('sets a given file');
+    it('sets a given directory');
+    it('supports var args');
+    it('throws when an invalid argument is specified');
+  });
+
+  describe('.depth', () => {
+    it('sets recursion depth');
+    it('disables recursion');
+    it('throws when depth is less than zero');
   });
 
   describe('.collect', () => {

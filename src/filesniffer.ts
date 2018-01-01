@@ -12,6 +12,7 @@ import { ArrayCollector } from './ArrayCollector';
 import { ObjectCollector } from './ObjectCollector';
 import { NoopCollector } from './NoopCollector';
 import { Collector } from './collector';
+import { deprecate } from 'util';
 
 const LineStream = byline.LineStream;
 
@@ -71,11 +72,13 @@ export class FileSniffer extends EventEmitter {
   private pending: number;
   private gzipMode: boolean;
   private collector: Collector;
+  private targets: string[];
 
   constructor(args) {
     super();
     this.inputSource = getSource(args);
     this.filenames = [];
+    this.targets = [];
     this.pending = 0;
     this.gzipMode = false;
     this.collector = new NoopCollector();
@@ -130,8 +133,23 @@ export class FileSniffer extends EventEmitter {
   }
 
   private getFiles(): Promise {
-    if (this.inputSource instanceof filehound) { return this.inputSource.find(); }
+    if (this.targets.length > 0) {
+      const fileTypes = this.groupByFileType(this.targets);
+      const allFiles = Promise.resolve(fileTypes.files);
+      let allDirs = Promise.resolve([]);
 
+      if (fileTypes.dirs.length > 0) {
+        allDirs = filehound
+          .create()
+          .depth(0)
+          .ignoreHiddenFiles()
+          .paths(fileTypes.dirs)
+          .find();
+      }
+      return Promise.join(allFiles, allDirs, flatten);
+    }
+
+    // @depreciate
     if (_.isArray(this.inputSource)) {
       const fileTypes = this.groupByFileType(this.inputSource);
       const allFiles = Promise.resolve(fileTypes.files);
@@ -140,7 +158,7 @@ export class FileSniffer extends EventEmitter {
       if (fileTypes.dirs.length > 0) {
         allDirs = filehound
           .create()
-          .depth(0) // TODO - add method for recursion 
+          .depth(0)
           .ignoreHiddenFiles()
           .paths(fileTypes.dirs)
           .find();
@@ -203,6 +221,11 @@ export class FileSniffer extends EventEmitter {
 
   public gzip(): FileSniffer {
     this.gzipMode = true;
+    return this;
+  }
+
+  public path(path): FileSniffer {
+    this.targets.push(path);
     return this;
   }
 
