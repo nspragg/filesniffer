@@ -1,7 +1,4 @@
-import _ from 'lodash';
-import {
-  assert
-} from 'chai';
+import { assert } from 'chai';
 import sinon from 'sinon';
 import path from 'path';
 import FileHound from 'filehound';
