@@ -23,24 +23,6 @@ function regExpMatch(data, pattern) {
   return pattern.test(data);
 }
 
-function invalidInputSource(source) {
-  return !(source instanceof filehound) && !_.isString(source) && !_.isArray(source);
-}
-
-function from(args) {
-  const arg = args[0];
-
-  if (invalidInputSource(arg)) {
-    throw new Error('Invalid input source');
-  }
-
-  if (arg instanceof filehound || _.isArray(arg)) {
-    return arg;
-  }
-
-  return Array.prototype.slice.call(args);
-}
-
 function getStats(file) {
   return fs.statSync(file);
 }
