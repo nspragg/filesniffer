@@ -12,7 +12,6 @@ import { ArrayCollector } from './ArrayCollector';
 import { ObjectCollector } from './ObjectCollector';
 import { NoopCollector } from './NoopCollector';
 import { Collector } from './collector';
-import { deprecate } from 'util';
 
 const LineStream = byline.LineStream;
 
@@ -50,10 +49,6 @@ function isDirectory(file) {
   return getStats(file).isDirectory();
 }
 
-function getSource(args) {
-  return args.length === 0 ? [process.cwd()] : from(arguments[0]);
-}
-
 function flatten(a, b) {
   return a.concat(b);
 }
@@ -67,21 +62,21 @@ export function asObject() {
 }
 
 export class FileSniffer extends EventEmitter {
-  private inputSource;
   private filenames: string[];
   private pending: number;
   private gzipMode: boolean;
   private collector: Collector;
   private targets: string[];
+  private maxDepth: number;
 
-  constructor(args) {
+  constructor() {
     super();
-    this.inputSource = getSource(args);
     this.filenames = [];
     this.targets = [];
     this.pending = 0;
     this.gzipMode = false;
     this.collector = new NoopCollector();
+    this.maxDepth = 0;
     bind(this);
   }
 
@@ -108,7 +103,7 @@ export class FileSniffer extends EventEmitter {
     return path.extname(file) === '.gz' && this.gzipMode;
   }
 
-  private nonBinaryFiles(file: string): boolean { // TODO: ignore binaries?
+  private nonBinaryFiles(file: string): boolean {
     if (this.handleGzip(file)) { return true; }
     return !isbinary(file);
   }
@@ -133,38 +128,21 @@ export class FileSniffer extends EventEmitter {
   }
 
   private getFiles(): Promise {
-    if (this.targets.length > 0) {
-      const fileTypes = this.groupByFileType(this.targets);
-      const allFiles = Promise.resolve(fileTypes.files);
-      let allDirs = Promise.resolve([]);
-
-      if (fileTypes.dirs.length > 0) {
-        allDirs = filehound
-          .create()
-          .depth(0)
-          .ignoreHiddenFiles()
-          .paths(fileTypes.dirs)
-          .find();
-      }
-      return Promise.join(allFiles, allDirs, flatten);
+    if (this.targets.length === 0) {
+      this.targets = [process.cwd()];
     }
-
-    // @depreciate
-    if (_.isArray(this.inputSource)) {
-      const fileTypes = this.groupByFileType(this.inputSource);
-      const allFiles = Promise.resolve(fileTypes.files);
-      let allDirs = Promise.resolve([]);
-
-      if (fileTypes.dirs.length > 0) {
-        allDirs = filehound
-          .create()
-          .depth(0)
-          .ignoreHiddenFiles()
-          .paths(fileTypes.dirs)
-          .find();
-      }
-      return Promise.join(allFiles, allDirs, flatten);
+    const fileTypes = this.groupByFileType(this.targets);
+    const allFiles = Promise.resolve(fileTypes.files);
+    let allDirs = Promise.resolve([]);
+    if (fileTypes.dirs.length > 0) {
+      allDirs = filehound
+        .create()
+        .depth(this.maxDepth)
+        .ignoreHiddenFiles()
+        .paths(fileTypes.dirs)
+        .find();
     }
+    return Promise.join(allFiles, allDirs, flatten);
   }
 
   private search(pattern): (files) => void {
@@ -229,6 +207,24 @@ export class FileSniffer extends EventEmitter {
     return this;
   }
 
+  public depth(maxDepth): FileSniffer {
+    if (maxDepth < 0) {
+      throw new Error('Depth must be >= 0');
+    }
+
+    this.maxDepth = maxDepth;
+    return this;
+  }
+
+  public paths(...paths): FileSniffer {
+    if (typeof paths[0] !== 'string' && !_.isArray(paths[0])) {
+      throw new TypeError('paths must be an array');
+    }
+
+    this.targets = _.flatten(paths);
+    return this;
+  }
+
   public find(pattern) {
     this.getFiles()
       .filter(this.nonBinaryFiles)
@@ -247,6 +243,6 @@ export class FileSniffer extends EventEmitter {
   }
 
   public static create(): FileSniffer {
-    return new FileSniffer(arguments);
+    return new FileSniffer();
   }
 }

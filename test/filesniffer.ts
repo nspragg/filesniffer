@@ -39,44 +39,6 @@ describe('FileSniffer', () => {
       });
       sniffer.find(/^p/i);
     });
-
-    // TODO: Migrate to .paths
-    it('supports variable arguments', (done) => {
-      const expected = [nestedList[1], nestedList[2]];
-
-      const sniffer = FileSniffer.create(nestedList[1], nestedList[2]);
-      const spy = mockMatchEvent(sniffer);
-
-      sniffer.on('end', () => {
-        sinon.assert.callCount(spy, 2);
-        sinon.assert.calledWithMatch(spy, expected[0]);
-        sinon.assert.calledWithMatch(spy, expected[1]);
-        done();
-      });
-      sniffer.find(/^f/i);
-    });
-
-    // TODO: Migrate to .paths
-    it('emits an end event when given an empty array', (done) => {
-      const expected = [];
-
-      const sniffer = FileSniffer.create([]);
-      const spy = mockMatchEvent(sniffer, 'end');
-
-      sniffer.on('end', () => {
-        sinon.assert.callCount(spy, 1);
-        sinon.assert.calledWithMatch(spy, expected);
-        done();
-      });
-      sniffer.find(/^whatever/i);
-    });
-
-    // TODO: Migrate to .paths
-    it('throws an error when given an invalid input source', () => {
-      assert.throws(() => {
-        FileSniffer.create({});
-      }, /Invalid input source/);
-    });
   });
 
   describe('.path', () => {
@@ -94,7 +56,6 @@ describe('FileSniffer', () => {
     });
 
     it('sets a given directory', async () => {
-      const expected = nestedList[0];
       const searchDirectory = __dirname + '/fixtures/nested';
 
       const matches = await FileSniffer.create()
@@ -110,22 +71,116 @@ describe('FileSniffer', () => {
   });
 
   describe('.paths', () => {
-    it('sets a given file');
-    it('sets a given directory');
-    it('supports var args');
-    it('throws when an invalid argument is specified');
+    it('sets a given array of files', (done) => {
+      const expected = fileList[0];
+      const sniffer = FileSniffer.create()
+        .paths([fileList[0]]);
+
+      const spy = mockMatchEvent(sniffer, 'end');
+
+      sniffer.on('end', () => {
+        sinon.assert.calledWithMatch(spy, [expected]);
+        done();
+      });
+      sniffer.find(/^f/);
+    });
+
+    it('sets a given array of directories', (done) => {
+      const sniffer = FileSniffer.create()
+        .paths([path.dirname(fileList[0]), path.dirname(nestedList[0])]);
+
+      const spy = mockMatchEvent(sniffer, 'end');
+
+      sniffer.on('end', () => {
+        sinon.assert.calledWithMatch(spy, [fileList[1], nestedList[0]]);
+        done();
+      });
+
+      sniffer.find(/^p/);
+    });
+
+    it('supports variable arguments', (done) => {
+      const expected = [nestedList[1], nestedList[2]];
+
+      const sniffer = FileSniffer.create().paths(nestedList[1], nestedList[2]);
+      const spy = mockMatchEvent(sniffer);
+
+      sniffer.on('end', () => {
+        sinon.assert.callCount(spy, 2);
+        sinon.assert.calledWithMatch(spy, expected[0]);
+        sinon.assert.calledWithMatch(spy, expected[1]);
+        done();
+      });
+      sniffer.find(/^f/i);
+    });
+
+    it('emits an end event when given an empty array', (done) => {
+      const expected = [];
+
+      const sniffer = FileSniffer.create().paths([]);
+      const spy = mockMatchEvent(sniffer, 'end');
+
+      sniffer.on('end', () => {
+        sinon.assert.callCount(spy, 1);
+        sinon.assert.calledWithMatch(spy, expected);
+        done();
+      });
+      sniffer.find(/^whatever/i);
+    });
+
+    it('throws when an invalid argument is specified', () => {
+      assert.throws(() => {
+        FileSniffer.create().paths({});
+      }, /paths must be an array/);
+    });
   });
 
   describe('.depth', () => {
-    it('sets recursion depth');
-    it('disables recursion');
-    it('throws when depth is less than zero');
+    it('recursion is off by default', async () => {
+      const searchDirectory = __dirname + '/fixtures/nested';
+
+      const matches = await FileSniffer.create()
+        .path(searchDirectory)
+        .collect(asArray())
+        .find(/^p/i);
+
+      assert.deepEqual(matches, [{
+        path: getAbsolutePath('nested/d.txt'),
+        match: 'passed'
+      }]);
+    });
+
+    it('sets recursion depth', async () => {
+      const searchDirectory = __dirname + '/fixtures/nested';
+
+      const matches = await FileSniffer.create()
+        .path(searchDirectory)
+        .depth(1)
+        .collect(asArray())
+        .find(/^p/i);
+
+      assert.deepEqual(matches, [{
+        path: getAbsolutePath('nested/d.txt'),
+        match: 'passed'
+      },
+      {
+        path: getAbsolutePath('nested/subdir/d.txt'),
+        match: 'passed'
+      }]);
+    });
+
+    it('throws when depth is less than zero', () => {
+      assert.throws(() => {
+        FileSniffer.create().depth(-1);
+      }, /Depth must be >= 0/);
+    });
   });
 
   describe('.collect', () => {
     describe('asArray', () => {
       it('returns matches as an array of match objects', async () => {
-        const matches = await FileSniffer.create(fileList)
+        const matches = await FileSniffer.create()
+          .paths(fileList)
           .collect(asArray())
           .find('passed');
 
@@ -136,9 +191,8 @@ describe('FileSniffer', () => {
       });
 
       it('returns matches as an array of match objects from multiple files', async () => {
-        const expected = [fileList[0], fileList[2]];
-
-        const matches = await FileSniffer.create(fileList)
+        const matches = await FileSniffer.create()
+          .paths(fileList)
           .collect(asArray())
           .find(/^f/i);
 
@@ -153,7 +207,8 @@ describe('FileSniffer', () => {
       });
 
       it('returns matches as an array from the same file', async () => {
-        const matches = await FileSniffer.create(matchingList)
+        const matches = await FileSniffer.create()
+          .paths(matchingList)
           .collect(asArray())
           .find('this is line A');
 
@@ -167,7 +222,8 @@ describe('FileSniffer', () => {
 
     describe('asObject', () => {
       it('returns matches as an object', async () => {
-        const matches = await FileSniffer.create(fileList)
+        const matches = await FileSniffer.create()
+          .paths(fileList)
           .collect(asObject())
           .find('passed');
 
@@ -178,7 +234,8 @@ describe('FileSniffer', () => {
       });
 
       it('returns matches from multiple files', async () => {
-        const matches = await FileSniffer.create(fileList)
+        const matches = await FileSniffer.create()
+          .paths(fileList)
           .collect(asObject())
           .find('failed');
 
@@ -190,7 +247,8 @@ describe('FileSniffer', () => {
       });
 
       it('returns multiple matches from the same file', async () => {
-        const matches = await FileSniffer.create(matchingList)
+        const matches = await FileSniffer.create()
+          .paths(matchingList)
           .collect(asObject())
           .find('this is line A');
 
@@ -209,7 +267,7 @@ describe('FileSniffer', () => {
     it('returns files from a given list that contains a given string', (done) => {
       const expected = [fileList[1]];
 
-      const sniffer = FileSniffer.create(fileList);
+      const sniffer = FileSniffer.create().paths(fileList);
       const spy = mockMatchEvent(sniffer);
 
       sniffer.on('end', () => {
@@ -224,7 +282,7 @@ describe('FileSniffer', () => {
     it('returns files from a given list that contains a pattern', (done) => {
       const expected = [fileList[0], fileList[2]];
 
-      const sniffer = FileSniffer.create(fileList);
+      const sniffer = FileSniffer.create().paths(fileList);
       const spy = mockMatchEvent(sniffer);
 
       sniffer.on('end', () => {
@@ -238,7 +296,7 @@ describe('FileSniffer', () => {
 
     it('emits the filename', (done) => {
       const expected = [fileList[1]];
-      const sniffer = FileSniffer.create(fileList);
+      const sniffer = FileSniffer.create().paths(fileList);
 
       sniffer.on('match', (filename) => {
         assert.equal(filename, expected);
@@ -249,7 +307,7 @@ describe('FileSniffer', () => {
 
     it('emits eof event when a file has been read', (done) => {
       const expected = fileList[0];
-      const sniffer = FileSniffer.create([fileList[0]]);
+      const sniffer = FileSniffer.create().paths([fileList[0]]);
 
       sniffer.on('eof', (filename) => {
         assert.equal(filename, expected);
@@ -263,7 +321,7 @@ describe('FileSniffer', () => {
       const match2 = 'In sit amet viverra leo. Donec sodales metus erat. Nullam consequat dui vel pretium auctor.';
       const match3 = 'lobortis sem. Proin bibendum ex at purus ornare faucibus. Nullam semper ligula vel quam aliquam,';
 
-      const sniffer = FileSniffer.create(matchingList);
+      const sniffer = FileSniffer.create().paths(matchingList);
 
       const spy = sinon.spy();
       sniffer.on('match', spy);
@@ -282,7 +340,7 @@ describe('FileSniffer', () => {
     it('ignores binary files by default', (done) => {
       const expected = [fileList[0], fileList[2]];
 
-      const sniffer = FileSniffer.create(expected.concat(binaryList));
+      const sniffer = FileSniffer.create().paths(expected.concat(binaryList));
 
       const spy = sinon.spy();
       sniffer.on('eof', spy);
@@ -300,7 +358,7 @@ describe('FileSniffer', () => {
       const expected = hidden[0];
       const searchDirectory = __dirname + '/fixtures/listWithHidden';
 
-      const sniffer = FileSniffer.create(searchDirectory);
+      const sniffer = FileSniffer.create().path(searchDirectory);
       const spy = mockMatchEvent(sniffer);
 
       sniffer.on('end', () => {
@@ -318,7 +376,8 @@ describe('FileSniffer', () => {
       const match3 = 'lobortis sem. Proin bibendum ex at purus ornare faucibus. Nullam semper ligula vel quam aliquam,';
 
       const sniffer = FileSniffer
-        .create(gzipped)
+        .create()
+        .paths(gzipped)
         .gzip();
 
       const spy = sinon.spy();
@@ -336,7 +395,7 @@ describe('FileSniffer', () => {
     });
 
     it('emits an error event when a file does not exist', (done) => {
-      const sniffer = FileSniffer.create('does-not-exist.json');
+      const sniffer = FileSniffer.create().path('does-not-exist.json');
 
       sniffer.on('error', (err) => {
         assert.include(err.message, 'does-not-exist.json');
