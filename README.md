@@ -6,6 +6,7 @@
 
 * [Installation](#installation)
 * [Usage](#usage)
+* [Documentation](#documentation)
 * [Test](#test)
 * [Contributing](#contributing)
 
@@ -27,6 +28,9 @@ const matches = await FileSniffer.create()
 
   console.log(matches); // array of matching lines
 ```
+
+## Documentation
+For more examples and API details, see [API documentation](https://nspragg.github.io/filesniffer/)
 
 ## Test
 
