@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Home - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2>
+</nav>
+
+<div id="main">
+    
+
+    
+
+
+
+    
+
+
+
+
+
+
+
+
+
+    
+
+
+    <section class="readme">
+        <article><h1>FileSniffer</h1><p><a href="https://travis-ci.org/nspragg/filesniffer"><img src="https://travis-ci.org/nspragg/filesniffer.svg" alt="Build Status"></a> <a href="https://coveralls.io/github/nspragg/filesniffer?branch=master"><img src="https://coveralls.io/repos/github/nspragg/filesniffer/badge.svg?branch=master" alt="Coverage Status"></a></p>
+<blockquote>
+<p>Flexible and fluent interface for searching files or search for files by content</p>
+</blockquote>
+<h2>Common examples</h2><h3>Collector functions</h3><h4>Search a specific file</h4><p>Searches for <code>str</code> in <code>someFile</code> and return matches as an array </p>
+<pre class="prettyprint source lang-js"><code>const {FileSniffer, asArray} = require('filesniffer');
+
+const someFile = ...
+const matches = FileSniffer
+  .create()
+  .path(someFile)
+  .collect(asArray())
+  .find();
+
+console.log(matches);</code></pre><h4>Search a list of files</h4><p>Searches for <code>str</code> in <code>arrayOfFiles</code> and return matches as an array </p>
+<pre class="prettyprint source lang-js"><code>const {FileSniffer, asArray} = require('filesniffer');
+
+const arrayOfFiles = [...];
+const matches = FileSniffer
+  .create()
+  .paths(arrayOfFiles)
+  .collect(asArray())
+  .find();
+
+console.log(matches);</code></pre><h4>Search a directory</h4><p>Searches for <code>str</code> in <code>someDirectory</code> and return matches as an array </p>
+<pre class="prettyprint source lang-js"><code>const {FileSniffer, asArray} = require('filesniffer');
+
+const someDirectory = ...
+const matches = FileSniffer
+  .create()
+  .path(someDirectory)
+  .collect(asArray())
+  .find();
+
+console.log(matches);</code></pre><h4>Search a directory recursively</h4><p>Recursively searches for <code>str</code> in <code>someDirectory</code> and return matches as an array </p>
+<pre class="prettyprint source lang-js"><code>const {FileSniffer, asArray} = require('filesniffer');
+
+const someDirectory = ...
+const matches = FileSniffer
+  .create()
+  .path(someDirectory)
+  .depth(10) // 10 levels 
+  .collect(asArray())
+  .find();
+
+console.log(matches);</code></pre><h4>Return matches as an object</h4><p>Searches for <code>str</code> in <code>someFile</code> and return matches as an object </p>
+<pre class="prettyprint source lang-js"><code>const {FileSniffer, asObject} = require('filesniffer');
+
+const someFile = ...
+const matches = FileSniffer
+  .create()
+  .path(someFile)
+  .collect(asObject())
+  .find();
+
+console.log(matches); // pathname -> array of matches</code></pre><h4>Write a custom collector</h4><p>Searches for <code>str</code> in <code>someFile</code> and writes matches to another file</p>
+<pre class="prettyprint source lang-ts"><code>const {FileSniffer, asObject, Collector} = require('filesniffer');
+
+// Custom collector written in Typescript
+class ToFile implements Collector {
+  private file;
+
+  constructor(file) {
+    this.file = fs.createWriteStream(file);
+  }
+
+  collect(line, meta) {
+    this.file.write(line);
+  }
+
+  matches() { 
+    this.file.end();
+    return this.results; 
+  }
+}
+
+const someFile = ...
+const targetFile = ...
+const matches = FileSniffer
+  .create()
+  .collect(new ToFile(targetFile))
+  .find('str');
+
+console.log(matches); // pathname -> array of matches</code></pre><h3>Event based searches</h3><h4>Search files (recursion off) in the current working directory</h4><p>Searches the current working directory for files containing the string <code>some string</code>:</p>
+<pre class="prettyprint source lang-js"><code>const sniffer = FileSniffer.create();
+
+// register event handlers
+sniffer.on('match', (filename, line) => {
+  console.log(`Matching line ${line} found in ${filename}`);
+});
+
+sniffer.on('end', (filenames) => {
+  console.log(`All files that match: ${filenames}`);
+});
+
+// start search
+sniffer.find('some string');</code></pre><h4>Search files in a specific directory</h4><p>Recursively search from <code>/tmp</code> for files containing <code>myPattern</code></p>
+<pre class="prettyprint source lang-js"><code> const sniffer = FileSniffer
+  .create()
+  .path('/tmp');
+
+ sniffer.on('end', (filenames) => {
+   console.log(filenames);
+ });
+
+ sniffer.find(/myPattern/);</code></pre><h4>Search a given list of files</h4><p>Searches list of files for <code>myPattern</code>:</p>
+<pre class="prettyprint source lang-js"><code>const files = [
+  '/tmp/file1.txt',
+  '/tmp/file2.txt'
+];
+const sniffer = FileSniffer
+  .create()
+  .paths(files);
+
+sniffer.on('end', (filenames) => {
+  console.log(filenames);
+});
+
+sniffer.find(/myPattern/);</code></pre><h4>Get matching content</h4><p>Listen to a match event to get all lines that match <code>myPattern</code></p>
+<pre class="prettyprint source lang-js"><code>const sniffer = FileSniffer
+  .create()
+  .path(file);
+
+const matchingLines = [];
+
+sniffer.on('match', (filename, line) => {
+  lines.push(line);
+});
+
+sniffer.find(/myPattern/);</code></pre><h4>Search gzip files</h4><p>Search files, including gzip files, in <code>dir</code>, containing <code>myPattern</code></p>
+<pre class="prettyprint source lang-js"><code>const path = require('path');
+
+const sniffer = FileSniffer
+  .create(dir)
+  .gzip();
+
+sniffer.on('match', (filename, line) => {
+  if (path.extname(filename) === '.gz') {
+    console.log(`Found ${line} in gzip file`)
+  }
+});
+
+sniffer.find(/myPattern/);</code></pre></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Jan 04 2018 18:06:20 GMT+0000 (GMT) using the Minami theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
