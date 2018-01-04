@@ -30,14 +30,14 @@ describe('FileSniffer', () => {
     it('uses the current working directory as the default search path', (done) => {
       const expected = process.cwd() + '/' + 'README.md';
       const sniffer = FileSniffer.create();
-      const spy = mockMatchEvent(sniffer);
+      const spy = mockMatchEvent(sniffer, 'end');
 
       sniffer.on('end', () => {
         sinon.assert.callCount(spy, 1);
-        sinon.assert.calledWithMatch(spy, expected);
+        sinon.assert.calledWithMatch(spy, [expected]);
         done();
       });
-      sniffer.find(/^p/i);
+      sniffer.find('Installation');
     });
   });
 

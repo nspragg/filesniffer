@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>filesniffer.js - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">filesniffer.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const _ = require("lodash");
+const Promise = require("bluebird");
+const fs = require("fs");
+const filehound = require("filehound");
+const events_1 = require("events");
+const byline = require("byline");
+const path = require("path");
+const zlib = require("zlib");
+const isbinary_1 = require("./isbinary");
+const bind_1 = require("./bind");
+const ArrayCollector_1 = require("./ArrayCollector");
+const ObjectCollector_1 = require("./ObjectCollector");
+const NoopCollector_1 = require("./NoopCollector");
+const LineStream = byline.LineStream;
+function stringMatch(data, str) {
+    return data.indexOf(str) !== -1;
+}
+function regExpMatch(data, pattern) {
+    return pattern.test(data);
+}
+function getStats(file) {
+    return fs.statSync(file);
+}
+function isDirectory(file) {
+    return getStats(file).isDirectory();
+}
+function flatten(a, b) {
+    return a.concat(b);
+}
+function asArray() {
+    return new ArrayCollector_1.ArrayCollector();
+}
+exports.asArray = asArray;
+function asObject() {
+    return new ObjectCollector_1.ObjectCollector();
+}
+exports.asObject = asObject;
+// tslint:disable-next-line:valid-jsdoc
+/**
+ * Static factory method to create an instance of FileSniffer
+ *
+ * @static
+ * @memberOf FileSniffer
+ * @method
+ * create
+ * @return FileSniffer instance
+ * @example
+ * import FileSniffer from 'FileSniffer';
+ *
+ * const FileSniffer = FileSniffer.create();
+ */
+class FileSniffer extends events_1.EventEmitter {
+    constructor() {
+        super();
+        this.filenames = [];
+        this.targets = [];
+        this.pending = 0;
+        this.gzipMode = false;
+        this.collector = new NoopCollector_1.NoopCollector();
+        this.maxDepth = 0;
+        bind_1.default(this);
+    }
+    createStream(file) {
+        if (this.handleGzip(file)) {
+            const lineStream = new LineStream();
+            fs.createReadStream(file)
+                .pipe(zlib.createGunzip())
+                .pipe(lineStream);
+            return lineStream;
+        }
+        return byline(fs.createReadStream(file, {
+            encoding: 'utf-8'
+        }));
+    }
+    createMatcher(pattern) {
+        return _.isString(pattern) ? stringMatch : regExpMatch;
+    }
+    handleGzip(file) {
+        return path.extname(file) === '.gz' &amp;&amp; this.gzipMode;
+    }
+    nonBinaryFiles(file) {
+        if (this.handleGzip(file)) {
+            return true;
+        }
+        return !isbinary_1.isbinary(file);
+    }
+    groupByFileType(paths) {
+        const dirs = [];
+        const files = [];
+        /* tslint:disable:no-increment-decrement */
+        for (let i = 0; i &lt; paths.length; i++) {
+            try {
+                isDirectory(paths[i]) ? dirs.push(paths[i]) : files.push(paths[i]);
+            }
+            catch (err) {
+                this.emit('error', err);
+            }
+        }
+        return {
+            files,
+            dirs
+        };
+    }
+    getFiles() {
+        if (this.targets.length === 0) {
+            this.targets = [process.cwd()];
+        }
+        const fileTypes = this.groupByFileType(this.targets);
+        const allFiles = Promise.resolve(fileTypes.files);
+        let allDirs = Promise.resolve([]);
+        if (fileTypes.dirs.length > 0) {
+            allDirs = filehound
+                .create()
+                .depth(this.maxDepth)
+                .ignoreHiddenFiles()
+                .paths(fileTypes.dirs)
+                .find();
+        }
+        return Promise.join(allFiles, allDirs, flatten);
+    }
+    search(pattern) {
+        return (files) => {
+            this.pending = files.length;
+            if (this.pending > 0) {
+                Promise.resolve(files).each((file) => {
+                    this.searchFile(file, pattern);
+                });
+            }
+            else {
+                this.emitEnd();
+            }
+        };
+    }
+    searchFile(file, pattern) {
+        const snifferStream = this.createStream(file);
+        const isMatch = this.createMatcher(pattern);
+        let matched = false;
+        snifferStream.on('readable', () => {
+            let line;
+            /* tslint:disable:no-conditional-assignment */
+            while (null !== (line = snifferStream.read())) {
+                if (line instanceof Buffer) {
+                    line = line.toString('utf8');
+                }
+                if (isMatch(line, pattern)) {
+                    matched = true;
+                    this.emit('match', file, line);
+                    if (!(this.collector instanceof NoopCollector_1.NoopCollector)) {
+                        this.collector.collect(line, { path: file });
+                    }
+                }
+            }
+        });
+        snifferStream.on('end', () => {
+            /* tslint:disable:no-increment-decrement */
+            this.pending--;
+            this.emit('eof', file);
+            if (matched) {
+                this.filenames.push(file);
+            }
+            this.emitEnd();
+        });
+    }
+    emitEnd() {
+        if (this.pending === 0) {
+            this.emit('end', this.filenames);
+        }
+    }
+    // tslint:disable-next-line:valid-jsdoc
+    /**
+     * Enables FileSniffer to search gzipped files
+     *
+     * @memberOf FileSniffer
+     * @method
+     * gzip
+     * @param none
+     * @return a FileSniffer instance
+     * @example
+     * import FileSniffer from 'FileSniffer';
+     *
+     * const sniffer = FileSniffer.create()
+     *   .gzip()
+     *   .collect(asArray())
+     *   .find('str');
+     */
+    gzip() {
+        this.gzipMode = true;
+        return this;
+    }
+    // tslint:disable-next-line:valid-jsdoc
+    /**
+     * Set the search path for FileSniffer - file or directory
+     *
+     * @memberOf FileSniffer
+     * @method
+     * path
+     * @param {string} path - search path
+     * @return a FileSniffer instance
+     * @example
+     * import FileSniffer from 'FileSniffer';
+     *
+     * const sniffer = FileSniffer.create()
+     *   .path(someFile)
+     *   .collect(asArray())
+     *   .find('str');
+     */
+    path(path) {
+        this.targets.push(path);
+        return this;
+    }
+    // tslint:disable-next-line:valid-jsdoc
+    /**
+     * Enables FileSniffer to search recursively
+     *
+     * @memberOf FileSniffer
+     * @method
+     * path
+     * @param {string} path - path of file (or directory) to search
+     * @return a FileSniffer instance
+     * @example
+     * import FileSniffer from 'FileSniffer';
+     *
+     * const sniffer = FileSniffer.create()
+     *   .path(someFile)
+     *   .collect(asArray())
+     *   .find('str');
+     */
+    depth(maxDepth) {
+        if (maxDepth &lt; 0) {
+            throw new Error('Depth must be >= 0');
+        }
+        this.maxDepth = maxDepth;
+        return this;
+    }
+    // tslint:disable-next-line:valid-jsdoc
+    /**
+     * Set the search paths for FileSniffer - can be a mixture of file and directories
+     *
+     * @memberOf FileSniffer
+     * @method
+     * paths
+     * @param {string} paths - search paths
+     * @return a FileSniffer instance
+     * @example
+     * import FileSniffer from 'FileSniffer';
+     *
+     * const sniffer = FileSniffer.create()
+     *   .paths(arrayOfPaths)
+     *   .collect(asArray())
+     *   .find('str');
+     */
+    paths(...paths) {
+        if (typeof paths[0] !== 'string' &amp;&amp; !_.isArray(paths[0])) {
+            throw new TypeError('paths must be an array');
+        }
+        this.targets = _.flatten(paths);
+        return this;
+    }
+    // tslint:disable-next-line:valid-jsdoc
+    /**
+     * Set the search paths for FileSniffer - can be a mixture of file and directories
+     *
+     * @memberOf FileSniffer
+     * @method
+     * find
+     * @param {string|pattern}  - search criteria
+     * @return a promise of matches
+     * @example
+     * import FileSniffer from 'FileSniffer';
+     *
+     * const matches = await FileSniffer.create()
+     *   .collect(asArray())
+     *   .find('str');
+     */
+    find(pattern) {
+        this.getFiles()
+            .filter(this.nonBinaryFiles)
+            .then(this.search(pattern));
+        return new Promise((resolve, reject) => {
+            this.on('end', () => {
+                resolve(this.collector.matches());
+            });
+        });
+    }
+    collect(collector) {
+        this.collector = collector;
+        return this;
+    }
+    static create() {
+        return new FileSniffer();
+    }
+}
+exports.FileSniffer = FileSniffer;
+//# sourceMappingURL=filesniffer.js.map</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Jan 04 2018 21:14:04 GMT+0000 (GMT) using the Minami theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
