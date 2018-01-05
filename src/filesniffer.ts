@@ -293,13 +293,15 @@ export class FileSniffer extends EventEmitter {
    *   .find('str');
    */
   public find(pattern) {
-    this.getFiles()
+    const search = this.getFiles()
       .filter(this.nonBinaryFiles)
       .then(this.search(pattern));
 
-    return new Promise((resolve, reject) => {
-      this.on('end', () => {
-        resolve(this.collector.matches());
+    return search.then(() => {
+      return new Promise((resolve, reject) => {
+        this.on('end', () => {
+          resolve(this.collector.matches());
+        });
       });
     });
   }
