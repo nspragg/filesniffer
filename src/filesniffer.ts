@@ -43,20 +43,7 @@ export function asObject() {
   return new ObjectCollector();
 }
 
-// tslint:disable-next-line:valid-jsdoc
-/**
- * Static factory method to create an instance of FileSniffer
- *
- * @static
- * @memberOf FileSniffer
- * @method
- * create
- * @return FileSniffer instance
- * @example
- * import FileSniffer from 'FileSniffer';
- *
- * const FileSniffer = FileSniffer.create();
- */
+/** @class */
 export class FileSniffer extends EventEmitter {
   private filenames: string[];
   private pending: number;
