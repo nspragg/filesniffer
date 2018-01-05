@@ -68,6 +68,20 @@ describe('FileSniffer', () => {
         match: 'passed'
       }]);
     });
+
+    it('returns an error when a file does not exist', async () => {
+      let fn = () => { };
+      try {
+        await FileSniffer
+          .create()
+          .path('does-not-exist.json')
+          .find(/^academic/);
+      } catch (e) {
+        fn = () => { throw e; };
+      } finally {
+        assert.throws(fn, /does-not-exist/);
+      }
+    });
   });
 
   describe('.paths', () => {

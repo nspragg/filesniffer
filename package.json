@@ -1,7 +1,7 @@
 {
   "name": "filesniffer",
-  "version": "1.0.0-alpha",
-  "description": "Find files by matching content",
+  "version": "1.0.0",
+  "description": "Search files the easy way.",
   "main": "index.js",
   "scripts": {
     "jsdoc": "jsdoc -c ./docconfig/jsdoc.json",
