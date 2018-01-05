@@ -1,6 +1,6 @@
 {
   "name": "filesniffer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Search files the easy way.",
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,6 @@
     "test": "mocha -r ts-node/register test/*.ts",
     "posttest": "npm run lint",
     "pretest": "npm run build",
-    "postinstall": "npm run build",
     "lint": "tslint --project tsconfig.json",
     "coverage": "nyc mocha && nyc report --reporter=html && nyc report --reporter=json-summary"
   },
