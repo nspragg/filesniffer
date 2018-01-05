@@ -408,6 +408,19 @@ describe('FileSniffer', () => {
       sniffer.find(/Nullam/);
     });
 
+    it('returns an error when no search pattern is specified', async () => {
+      let fn = () => { };
+      try {
+        await FileSniffer
+          .create()
+          .find();
+      } catch (e) {
+        fn = () => { throw e; };
+      } finally {
+        assert.throws(fn, /Search string or pattern must be specified/);
+      }
+    });
+
     it('emits an error event when a file does not exist', (done) => {
       const sniffer = FileSniffer.create().path('does-not-exist.json');
 
