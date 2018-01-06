@@ -16,7 +16,7 @@ Searches for `str` in `someFile` and return matches as an array
 const {FileSniffer, asArray} = require('filesniffer');
 
 const someFile = ...
-const matches = FileSniffer
+const matches = await FileSniffer
   .create()
   .path(someFile)
   .collect(asArray())
@@ -33,7 +33,7 @@ Searches for `str` in `arrayOfFiles` and return matches as an array
 const {FileSniffer, asArray} = require('filesniffer');
 
 const arrayOfFiles = [...];
-const matches = FileSniffer
+const matches = await FileSniffer
   .create()
   .paths(arrayOfFiles)
   .collect(asArray())
@@ -50,7 +50,7 @@ Searches for `str` in `someDirectory` and return matches as an array
 const {FileSniffer, asArray} = require('filesniffer');
 
 const someDirectory = ...
-const matches = FileSniffer
+const matches = await FileSniffer
   .create()
   .path(someDirectory)
   .collect(asArray())
@@ -67,7 +67,7 @@ Recursively searches for `str` in `someDirectory` and return matches as an array
 const {FileSniffer, asArray} = require('filesniffer');
 
 const someDirectory = ...
-const matches = FileSniffer
+const matches = await FileSniffer
   .create()
   .path(someDirectory)
   .depth(10) // 10 levels 
@@ -85,9 +85,36 @@ Searches for `str` in `someFile` and return matches as an object
 const {FileSniffer, asObject} = require('filesniffer');
 
 const someFile = ...
-const matches = FileSniffer
+const matches = await FileSniffer
   .create()
   .path(someFile)
+  .collect(asObject())
+  .find();
+
+console.log(matches); // pathname -> array of matches
+```
+
+#### Advanced search criteria
+
+[FileHound](https://github.com/nspragg/filehound) in combination with the `FileSniffer.paths` method 
+can be used for specific file searches:
+
+For example, only search text files and ignore hidden directories:
+
+```js
+const {FileSniffer, asObject} = require('filesniffer');
+const FileHound = require('filehound');
+
+const files = await FileHound
+    .create() // cwd
+    .ext('.txt')
+    .ignoreHiddenDirectories()
+    .find();
+
+const someFile = ...
+const matches = await FileSniffer
+  .create()
+  .paths(files)
   .collect(asObject())
   .find();
 
@@ -121,7 +148,7 @@ class ToFile implements Collector {
 
 const someFile = ...
 const targetFile = ...
-const matches = FileSniffer
+const matches = await FileSniffer
   .create()
   .collect(new ToFile(targetFile))
   .find('str');
@@ -136,7 +163,7 @@ console.log(matches); // pathname -> array of matches
 Searches the current working directory for files containing the string `some string`:
 
 ```js
-const sniffer = FileSniffer.create();
+const sniffer = await FileSniffer.create();
 
 // register event handlers
 sniffer.on('match', (filename, line) => {
@@ -156,7 +183,7 @@ sniffer.find('some string');
 Recursively search from `/tmp` for files containing `myPattern`
 
 ```js
- const sniffer = FileSniffer
+ const sniffer = await FileSniffer
   .create()
   .path('/tmp');
 
@@ -176,7 +203,7 @@ const files = [
   '/tmp/file1.txt',
   '/tmp/file2.txt'
 ];
-const sniffer = FileSniffer
+const sniffer = await FileSniffer
   .create()
   .paths(files);
 
@@ -192,7 +219,7 @@ sniffer.find(/myPattern/);
 Listen to a match event to get all lines that match `myPattern`
 
 ```js
-const sniffer = FileSniffer
+const sniffer = await FileSniffer
   .create()
   .path(file);
 
@@ -212,7 +239,7 @@ Search files, including gzip files, in `dir`, containing `myPattern`
 ```js
 const path = require('path');
 
-const sniffer = FileSniffer
+const sniffer = await FileSniffer
   .create(dir)
   .gzip();
 
