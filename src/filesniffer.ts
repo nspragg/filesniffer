@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import * as Promise from 'bluebird';
+import * as bluebird from 'bluebird';
 import * as fs from 'fs';
 import * as filehound from 'filehound';
 import { EventEmitter } from 'events';
@@ -82,7 +82,7 @@ export class FileSniffer extends EventEmitter {
     return _.isString(pattern) ? stringMatch : regExpMatch;
   }
 
-  private handleGzip(file) {
+  private handleGzip(file): boolean {
     return path.extname(file) === '.gz' && this.gzipMode;
   }
 
@@ -110,7 +110,7 @@ export class FileSniffer extends EventEmitter {
     };
   }
 
-  private getFiles(): Promise {
+  private getFiles(): bluebird<string[]> {
     if (this.targets.length === 0) {
       this.targets = [process.cwd()];
     }
@@ -125,14 +125,14 @@ export class FileSniffer extends EventEmitter {
         .paths(fileTypes.dirs)
         .find();
     }
-    return Promise.join(allFiles, allDirs, flatten);
+    return bluebird.join(allFiles, allDirs, flatten);
   }
 
   private search(pattern): (files) => void {
     return (files) => {
       this.pending = files.length;
       if (this.pending > 0) {
-        Promise.resolve(files).each((file) => {
+        bluebird.resolve(files).each((file) => {
           this.searchFile(file, pattern);
         });
       }
@@ -292,7 +292,11 @@ export class FileSniffer extends EventEmitter {
    *   .collect(asArray())
    *   .find('str');
    */
-  public find(pattern) {
+  public find(pattern): Promise<any> {
+    if (!pattern) {
+      return Promise.reject(new Error('Search string or pattern must be specified'));
+    }
+
     const search = this.getFiles()
       .filter(this.nonBinaryFiles)
       .then(this.search(pattern));

@@ -68,6 +68,20 @@ describe('FileSniffer', () => {
         match: 'passed'
       }]);
     });
+
+    it('returns an error when a file does not exist', async () => {
+      let fn = () => { };
+      try {
+        await FileSniffer
+          .create()
+          .path('does-not-exist.json')
+          .find(/^academic/);
+      } catch (e) {
+        fn = () => { throw e; };
+      } finally {
+        assert.throws(fn, /does-not-exist/);
+      }
+    });
   });
 
   describe('.paths', () => {
@@ -392,6 +406,19 @@ describe('FileSniffer', () => {
       });
 
       sniffer.find(/Nullam/);
+    });
+
+    it('returns an error when no search pattern is specified', async () => {
+      let fn = () => { };
+      try {
+        await FileSniffer
+          .create()
+          .find();
+      } catch (e) {
+        fn = () => { throw e; };
+      } finally {
+        assert.throws(fn, /Search string or pattern must be specified/);
+      }
     });
 
     it('emits an error event when a file does not exist', (done) => {

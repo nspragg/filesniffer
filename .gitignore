@@ -3,4 +3,4 @@ coverage
 *.log
 lib/
 dist/
-package-lock.json
+package-lock*

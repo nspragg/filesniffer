@@ -7,7 +7,7 @@
   },
   "source": {
     "include": [
-      "./dist"
+      "./dist/src"
     ]
   },
   "plugins": [

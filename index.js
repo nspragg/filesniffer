@@ -1,3 +1,3 @@
 'use strict';
 
-module.exports = require('./lib/filesniffer');
+module.exports = require('./dist/src/filesniffer');

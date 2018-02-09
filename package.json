@@ -1,7 +1,7 @@
 {
   "name": "filesniffer",
-  "version": "1.0.0-alpha",
-  "description": "Find files by matching content",
+  "version": "1.0.3",
+  "description": "Search files the easy way.",
   "main": "index.js",
   "scripts": {
     "jsdoc": "jsdoc -c ./docconfig/jsdoc.json",
@@ -13,7 +13,6 @@
     "test": "mocha -r ts-node/register test/*.ts",
     "posttest": "npm run lint",
     "pretest": "npm run build",
-    "postinstall": "npm run build",
     "lint": "tslint --project tsconfig.json",
     "coverage": "nyc mocha && nyc report --reporter=html && nyc report --reporter=json-summary"
   },
@@ -53,7 +52,7 @@
     "eslint": "^3.11.1",
     "eslint-config-iplayer-base": "^1.0.0",
     "istanbul": "1.1.0-alpha.1",
-    "jsdoc": "^3.4.3",
+    "jsdoc": "^3.5.5",
     "mocha": "^3.5.3",
     "nyc": "^11.4.1",
     "sinon": "^2.3.6",
