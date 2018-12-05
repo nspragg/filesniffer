@@ -24,7 +24,6 @@ npm install --save filesniffer
 // Searches for `someString` in `/tmp/test.txt`, returning all matches as an array 
 const matches = await FileSniffer.create()
   .path('/tmp/test.txt')
-  .depth(1)
   .collect(asArray())
   .find('someString');
 
