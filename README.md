@@ -1,6 +1,8 @@
 # FileSniffer
 
+[![NPM downloads](https://img.shields.io/npm/dm/filesniffer.svg?style=flat)](https://npmjs.org/package/filesniffer)
 [![Build Status](https://travis-ci.org/nspragg/filesniffer.svg)](https://travis-ci.org/nspragg/filesniffer) [![Coverage Status](https://coveralls.io/repos/github/nspragg/filesniffer/badge.svg?branch=master)](https://coveralls.io/github/nspragg/filesniffer?branch=master)
+![github-issues](https://img.shields.io/github/issues/nspragg/filesniffer.svg)
 
 > Find files by matching contents
 
