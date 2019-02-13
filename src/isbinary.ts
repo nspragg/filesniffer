@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const BINARY_FILE_EXTENSIONS = require('../../extensions');
+const BINARY_FILE_EXTENSIONS = require('../../extensions.json');
 
 const binaryCharacters = [
   0, 1, 2, 3, 4,
